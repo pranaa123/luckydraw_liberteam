@@ -22,6 +22,11 @@ try {
       try { App\\Core\\RequestOrigin::assertSameOrigin(); $valid=true; } catch (App\\Core\\ApiError $e) { $valid=false; }
       if ($valid!==$expected) throw new Exception('Origin gagal: '.$host.' '.$origin);
     }
+    putenv('APP_ENV=production');
+    $_SERVER=['HTTP_HOST'=>'luckydrawliberteam.vercel.app','REQUEST_URI'=>'/output?preview=1'];
+    if (App\\Core\\RequestOrigin::canonicalRedirect()!=='https://luckydraw-liberteam.vercel.app/output?preview=1') throw new Exception('Alias tidak dialihkan');
+    $_SERVER['HTTP_HOST']='luckydraw-liberteam.vercel.app';
+    if (App\\Core\\RequestOrigin::canonicalRedirect()!==null) throw new Exception('Redirect berulang');
     putenv('BACKGROUND_DRIVER=supabase'); putenv('SUPABASE_URL=https://mjqkrtrjrctdqnbzbbwb.supabase.co');
     App\\Modules\\Presentation\\BackgroundAsset::validate('/assets/backgrounds/'.str_repeat('a',32).'.png');
     foreach (['/assets/backgrounds/../../.env','https://attacker.example/x.png'] as $path) {

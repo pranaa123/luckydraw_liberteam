@@ -16,6 +16,10 @@ try { App\Core\CloudRuntime::validate($config); } catch (Throwable $error) {
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
 header('Cache-Control: no-store');
+if ($redirect = App\Core\RequestOrigin::canonicalRedirect()) {
+    header('Location: ' . $redirect, true, 308);
+    exit;
+}
 $storageOrigin = App\Modules\Presentation\BackgroundStorage::cloud() ? ' ' . App\Modules\Presentation\BackgroundStorage::origin() : '';
 header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:" . $storageOrigin . "; connect-src 'self'" . $storageOrigin . "; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'");
 

@@ -7,6 +7,16 @@ namespace App\Core;
 /** Origin cloud berasal dari konfigurasi server, bukan header proxy kiriman klien. */
 final class RequestOrigin
 {
+    public static function canonicalRedirect(): ?string
+    {
+        if (Environment::get('APP_ENV', 'local') !== 'production') return null;
+        $url = rtrim(Environment::get('APP_URL'), '/');
+        if (($_SERVER['HTTP_HOST'] ?? '') === parse_url($url, PHP_URL_HOST)) return null;
+        $uri = $_SERVER['REQUEST_URI'] ?? '/';
+        if (!str_starts_with($uri, '/') || preg_match('/[\r\n]/', $uri)) $uri = '/';
+        return $url . $uri;
+    }
+
     public static function assertSameOrigin(): void
     {
         $host = $_SERVER['HTTP_HOST'] ?? '';

@@ -20,7 +20,7 @@ Adapter HTTP job di scripts/google-http-bridge.mjs hanya menghindari antrean PHP
 
 ## Environment
 
-- APP_ENV (`local`, `preview`, `production`), APP_URL (origin HTTPS kanonis), APP_TIMEZONE, DB_DSN, DB_USER, DB_PASSWORD. Runtime menolak konfigurasi cloud yang belum lengkap. Origin preview tambahan berasal dari VERCEL_URL yang disediakan server, bukan header proxy klien.
+- APP_ENV (`local`, `preview`, `production`), APP_URL (origin HTTPS kanonis), APP_TIMEZONE, DB_DSN, DB_USER, DB_PASSWORD. Runtime menolak konfigurasi cloud yang belum lengkap. Alias produksi dialihkan ke APP_URL agar login dan operasi memakai origin yang sama. Origin preview tambahan berasal dari VERCEL_URL yang disediakan server, bukan header proxy klien.
 - APP_ENCRYPTION_KEY: base64 dari 32 byte acak, wajib di environment cloud. Kredensial konektor memakai AES-256-GCM. File kunci storage/keys/local.key hanya fallback lokal; simpan bersama backup database bila ingin memulihkan koneksi lokal.
 - Jangan kirim service-role key Supabase, password database atau kunci enkripsi ke asset/HTML umum. Respons setup konektor memang membawa script dengan kunci sumber untuk dipasang oleh operator; list, audit dan broadcast tidak membawa kunci tersebut.
 - BACKGROUND_DRIVER=`supabase`, SUPABASE_URL, SUPABASE_SECRET_KEY dan SUPABASE_BACKGROUND_BUCKET=`doorprize-backgrounds`. Bucket privat menerima PNG/JPG/WebP maksimal 20 MB. Browser meminta URL upload untuk satu objek, mengunggah langsung ke Storage, lalu server memvalidasi bytes/dimensi sebelum menandai aset siap. Pembacaan memerlukan sesi dan registry milik acara, lalu redirect ke URL download 120 detik. Token signed URL tidak dicatat pada konfigurasi visual/audit/broadcast.

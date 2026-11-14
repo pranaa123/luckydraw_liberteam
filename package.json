@@ -7,7 +7,7 @@
     "build": "node scripts/build-assets.mjs && tailwindcss -i resources/css/app.css -o public/assets/app.css --minify",
     "watch": "tailwindcss -i resources/css/app.css -o public/assets/app.css --watch",
     "dev": "node scripts/dev.mjs",
-    "check": "node scripts/check.mjs && node scripts/check-auth.mjs && node scripts/check-management.mjs && node scripts/check-settings.mjs && node scripts/check-canvas.mjs && node scripts/check-result-layout.mjs && node scripts/check-draws.mjs && node scripts/check-winners.mjs && node scripts/check-winner-pdf.mjs && node scripts/check-filters.mjs && node scripts/check-imports.mjs && node scripts/check-google-connector.mjs && node scripts/check-google-sheets.mjs && node scripts/check-supabase-schema.mjs",
+    "check": "node scripts/check.mjs && node scripts/check-auth.mjs && node scripts/check-management.mjs && node scripts/check-settings.mjs && node scripts/check-canvas.mjs && node scripts/check-result-layout.mjs && node scripts/check-draws.mjs && node scripts/check-winners.mjs && node scripts/check-winner-pdf.mjs && node scripts/check-filters.mjs && node scripts/check-imports.mjs && node scripts/check-google-connector.mjs && node scripts/check-google-sheets.mjs && node scripts/check-supabase-schema.mjs && node scripts/check-cloud.mjs",
     "check:browser": "node scripts/check-output-browser.mjs",
     "check:management:browser": "node scripts/check-management-browser.mjs",
     "check:settings:browser": "node scripts/check-settings-browser.mjs",
