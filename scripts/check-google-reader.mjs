@@ -7,7 +7,7 @@ import {connectAuthenticatedDatabase} from './auth-fixture.mjs';
 const db=await openLocalDatabase('memory://'),php=await createPHP(),queries=[];
 const query=db.query.bind(db);db.query=(...args)=>{queries.push(args[0]);return query(...args);};
 const id='1DoorprizeDirectReaderFixture1234567890';
-let version=1,deny=false,bumpFinal=false,calls=[],rows=[[45000.123,'Alam','Divisi A'],[45000.124,'Budi','Divisi B']];
+let version=1,title='Respons',deny=false,bumpFinal=false,calls=[],rows=[[45000.123,'Alam','Divisi A'],[45000.124,'Budi','Divisi B']];
 const env={GOOGLE_READER_EMAIL:'reader@fixture-project.iam.gserviceaccount.com',GOOGLE_READER_AUDIENCE:'//fixture',VERCEL_OIDC_TOKEN:'fixture-only'};
 const detach=await connectAuthenticatedDatabase(php,db,{reader:async request=>{
   const url=new URL(request.url);calls.push(url.pathname+url.search);
@@ -17,10 +17,13 @@ const detach=await connectAuthenticatedDatabase(php,db,{reader:async request=>{
   if(url.hostname==='www.googleapis.com'&&bumpFinal&&url.searchParams.get('fields')==='trashed,version,id'){version++;bumpFinal=false;}
   if(url.hostname==='www.googleapis.com')return{status:200,data:{id,version:String(version),trashed:false}};
   if(url.pathname.endsWith('/'+id)||url.pathname.endsWith('/'+id+'Other')){
+    const ranges=url.searchParams.getAll('ranges');
+    if(ranges.some(r=>r.includes('!')&&r.split('!')[0]!=="'"+title+"'"))return{status:400,data:{error:{}}};
+    if(ranges.some(r=>Number(r.match(/(?:^|!)[A-Z]+(\d+)/)?.[1])>Math.max(3,rows.length+1)))return{status:400,data:{error:{}}};
     const table=[['Timestamp','Nama lengkap','Divisi'],...rows],blocks=url.searchParams.getAll('ranges').map(range=>{
       const m=range.match(/(?:^|!)([A-Z]+)(\d+):([A-Z]+)(\d+)$/);assert.ok(m,range);const col=s=>[...s].reduce((v,c)=>v*26+c.charCodeAt(0)-64,0)-1;
       return{startRow:Number(m[2])-1,startColumn:col(m[1]),rowData:table.slice(Number(m[2])-1,Number(m[4])).map(row=>({values:row.slice(col(m[1]),col(m[3])+1).map(v=>({formattedValue:String(v),effectiveValue:{[typeof v==='number'?'numberValue':'stringValue']:v}}))}))};
-    });return{status:200,data:{spreadsheetId:id,sheets:[{properties:{sheetId:0,title:'Respons',gridProperties:{rowCount:Math.max(3,rows.length+1),columnCount:3}},data:blocks}]}};
+    });return{status:200,data:{spreadsheetId:id,sheets:[{properties:{sheetId:0,title,gridProperties:{rowCount:Math.max(3,rows.length+1),columnCount:3}},data:blocks}]}};
   }
   const values=[['Timestamp','Nama lengkap','Divisi'],...rows];
   function range(value){const m=value.match(/!([A-Z]+)(\d+):([A-Z]+)(\d+)$/);assert.ok(m,value);const col=s=>[...s].reduce((v,c)=>v*26+c.charCodeAt(0)-64,0)-1;return values.slice(Number(m[2])-1,Number(m[4])).map(row=>row.slice(col(m[1]),col(m[3])+1));}
@@ -41,7 +44,7 @@ try{
  source=await connect(first);assert.equal(source.connection_mode,'reader');assert.equal((await api('google-sources')).items.length,1);
  const initial=await sync();assert.equal(initial.summary.inserted,2);assert.equal(source.phase,'live');
  assert.ok(calls.filter(s=>s.includes('generateAccessToken')).length===1,'Token dibaca dari cache terenkripsi setelah diperoleh');
- calls=[];queries.length=0;const idle=await sync();assert.equal(idle.changed,false);assert.equal(calls.length,1,'Idle hanya membaca versi file');assert.ok(!queries.some(s=>/doorprize\.(participants|participant_pool)\b/.test(s)),'Idle tidak membaca peserta/pool');
+ const eventVersion=(await db.query('SELECT version FROM doorprize.events WHERE id=1')).rows[0].version;calls=[];queries.length=0;const idle=await sync();assert.equal(idle.state_changed,false);assert.equal((await db.query('SELECT version FROM doorprize.events WHERE id=1')).rows[0].version,eventVersion,'Idle tidak menginvalidasi state operator');assert.equal(idle.changed,false);assert.equal(calls.length,1,'Idle hanya membaca versi file');assert.ok(!queries.some(s=>/doorprize\.(participants|participant_pool)\b/.test(s)),'Idle tidak membaca peserta/pool');
  let people=(await api('participants')).items;const budi=people.find(p=>p.name==='Budi');const schema=(await api('imports')).field_schema;
  await api('participants',{action:'update',id:budi.id,version:budi.version,name:'Budi',field_1:'Edit operator',status:'available',field_schema:schema});
  rows[1][2]='Dari Google';version++;await sync();assert.equal(source.conflict_rows,1);assert.equal((await api('participants')).items.find(p=>p.id===budi.id).field_1,'Edit operator');
@@ -51,11 +54,14 @@ try{
  const recheck=await inspect();const same=await connect(recheck);assert.equal(same.id,source.id,'Sheet yang sama memakai sumber sama');source=same;
  await sync();assert.equal((await api('participants')).items.length,2,'Petakan ulang tidak memasukkan peserta ulang');
  const current=source,another=await inspect(`https://docs.google.com/spreadsheets/d/${id}Other/edit#gid=0`);source=await connect(another);
+ deny=true;const initialFailure=await sync();assert.equal(initialFailure.state_changed,true);assert.equal((await api('draws')).sync_pending,false,'Google gagal: undian boleh memakai data tersimpan');deny=false;
  assert.notEqual(source.id,current.id);assert.equal((await api('google-sources')).items.length,1);assert.equal((await api('participants')).items.length,2,'Ganti sumber mempertahankan peserta');
  await api('google-sources',{action:'resume',id:Number(current.id),version:Number(current.version)+1},409);
  rows=Array.from({length:450},(_,i)=>[46000+i/10000,'Peserta '+i,'Unit']);version++;let page;let pages=0;do{page=await sync();assert.ok(page.summary.processed<=200);pages++;}while(page.more);assert.equal(pages,3);
  const firstId=(await api('participants')).items.find(p=>p.name==='Peserta 0').id;rows.shift();version++;bumpFinal=true;do{page=await sync();}while(page.more);assert.equal((await db.query('SELECT status FROM doorprize.participants WHERE id=$1',[firstId])).rows[0].status,'available','Versi berubah: jangan eliminasi berdasarkan snapshot belum stabil');
  do{page=await sync();}while(page.more);assert.equal((await db.query('SELECT status FROM doorprize.participants WHERE id=$1',[firstId])).rows[0].status,'eliminated','Snapshot stabil baru menerapkan penghapusan');
+ const savedRows=rows.map(row=>[...row]);version++;await sync();rows=rows.slice(0,3);title='Respons baru';version++;const shrink=await sync();assert.ok(!shrink.error,shrink.error);assert.equal(source.sheet_name,title,'Rename tab ditangani lewat ID tetap');assert.equal(source.phase,'live');
+ rows=savedRows;version++;do{page=await sync();}while(page.more);
  rows[201][0]=rows[0][0];version++;await sync();const duplicate=await sync();assert.ok(duplicate.error);assert.equal(source.phase,'paused','ID ganda lintas halaman dijeda');
  const token=JSON.stringify(await api('google-sources'));assert.ok(!token.includes('fixture-readonly')&&!token.includes('encrypted_secret'));
  console.log('Google Reader: periksa/batal tanpa record, satu koneksi, link/pemetaan/ID otomatis, token terenkripsi, idle versi saja, konflik, hapus aman, izin gagal, pemetaan ulang tanpa duplikasi, ganti sumber atomik, sumber lama ditolak dan tanpa bocor token lulus.');
