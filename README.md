@@ -130,7 +130,7 @@ Persiapan, undian, filter, edit massal dan riwayat aktivitas tersedia. Backgroun
 
 Uji lokal filter 50.000+ peserta/100 hasil: pembentukan pertama 235 ms, penggunaan ulang 11 ms, Stop 115 ms. Ini pengukuran pada runtime/mesin pengujian. Cache turunan tetap divalidasi terhadap peserta kanonik saat Stop; pengujian cache tidak valid memastikan hasil dibatalkan.
 
-`APP_ENV` selain `local` tetap menghasilkan respons 503 sampai penyimpanan background cloud dan pengujian deployment selesai. Belum ada deployment Vercel atau perubahan Supabase.
+Runtime cloud menolak konfigurasi yang belum lengkap. Integrasi Container PHP, Supabase privat dan hasil verifikasi cloud tercatat di [DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 Lihat [BRIEF.md](BRIEF.md) untuk kebutuhan lengkap dan [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) untuk aturan pengembangan.
 
@@ -160,7 +160,7 @@ Pemeriksaan: `npm run check:google` (PHP/PostgreSQL + simulasi API Apps Script).
 
 ## Jalur deployment
 
-[DEPLOYMENT.md](docs/DEPLOYMENT.md) menjelaskan Vercel Container PHP, koneksi pooler PostgreSQL Supabase, environment, dan batas kesiapan. Dockerfile/Caddyfile mengemas aplikasi baru saja. Paket supabase/migrations mempunyai baseline lengkap 001–005 lalu migrasi Sheets; `npm run check:supabase-schema` memverifikasi instalasi pada PostgreSQL kosong, RLS dan penerapan ulang tanpa kehilangan data. Login/owner/CSRF tersedia lokal; background persisten di Supabase Storage dan pengujian HTTPS/PDO/pooler/Container masih perlu diselesaikan sebelum publikasi; guard produksi tetap aktif. Belum ada deploy atau perubahan proyek cloud.
+[DEPLOYMENT.md](docs/DEPLOYMENT.md) menjelaskan Vercel Container PHP, koneksi pooler PostgreSQL Supabase, environment, dan batas kesiapan. Dockerfile/Caddyfile mengemas aplikasi baru saja. Paket supabase/migrations mempunyai baseline lengkap 001–005 lalu migrasi Sheets; `npm run check:supabase-schema` memverifikasi instalasi pada PostgreSQL kosong, RLS dan penerapan ulang tanpa kehilangan data. Login/owner/CSRF, Storage privat dan HTTPS/PDO/pooler/Container telah diverifikasi pada preview cloud. Guard konfigurasi tetap aktif; cold start dan uji Google/layar fisik dijelaskan dalam dokumen deployment.
 
 Uji canvas: `npm run check:canvas` memeriksa 1008 kombinasi geometri pada JS/PHP serta hierarki teks 100/50/25/25. Untuk browser, jalankan server dengan database QA kosong dan port 8098 lalu `npm run check:canvas:browser`; gunakan DOORPRIZE_TEST_ORIGIN untuk port lain. Jangan memakai port 8091/data utama. Uji browser mencakup pengetikan bertahap, max dinamis, portrait/panorama/8K, hasil fullname dalam fullscreen, fit gambar, Default → Simpan → reload, dan lebar 390 px. Screenshot di .cache/canvas-qa. Perubahan ukuran/posisi tidak menambah request API.
 
@@ -190,7 +190,7 @@ Akun pemilik lokal menggunakan email yang diberikan saat persiapan lokal, tanpa 
 
 Persiapan akun pertama pada database portabel memakai `node scripts/setup-owner.mjs` dengan JSON `email`/`password` melalui stdin. Hanya bisa membuat akun pertama dalam APP_ENV local dan tidak mencetak kredensial. Jangan menulis password ke source/dokumen atau memakai ulang kredensial aplikasi lama. Database yang sudah berisi akun tidak ditimpa. Untuk pengujian, buat database QA terpisah dan sediakan akun fiktif dari `scripts/auth-fixture.mjs`; browser check menerima `DOORPRIZE_TEST_EMAIL`/`DOORPRIZE_TEST_PASSWORD` bila diperlukan. `npm run check:auth` menguji backend; `npm run check:auth:browser` memakai server QA port 8098.
 
-Target tetap: GitHub `pranaa123/luckydraw_liberteam`; Vercel tim/kapsul `photobooth`, proyek `luckydraw-liberteam`; Supabase `mjqkrtrjrctdqnbzbbwb`. Repository lokal mandiri memakai remote `origin` tersebut. Koneksi database cloud dan deployment belum diaktifkan.
+Target tetap: GitHub `pranaa123/luckydraw_liberteam`; Vercel **Kapsul Photobooth** (`kapsul-photobooth`), proyek `luckydraw-liberteam`; Supabase `mjqkrtrjrctdqnbzbbwb`. Repository lokal mandiri memakai remote `origin` tersebut. Vercel dan Supabase khusus aplikasi baru sudah terhubung; database lokal tetap terpisah.
 
 ## Git aplikasi baru
 

@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 $config = require dirname(__DIR__) . '/bootstrap/app.php';
 
-// Produksi menunggu penyelesaian penyimpanan aset dan pengujian deployment.
-if ($config['environment'] !== 'local') {
+// Cloud hanya berjalan jika seluruh konfigurasi runtime persisten tersedia.
+try { App\Core\CloudRuntime::validate($config); } catch (Throwable $error) {
+    error_log($error->getMessage());
     http_response_code(503);
     header('Content-Type: text/plain; charset=utf-8');
     echo 'Aplikasi masih dalam tahap pengembangan lokal.';
@@ -15,7 +16,8 @@ if ($config['environment'] !== 'local') {
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
 header('Cache-Control: no-store');
-header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'");
+$storageOrigin = App\Modules\Presentation\BackgroundStorage::cloud() ? ' ' . App\Modules\Presentation\BackgroundStorage::origin() : '';
+header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:" . $storageOrigin . "; connect-src 'self'" . $storageOrigin . "; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'");
 
 try {
     $path = rawurldecode(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');

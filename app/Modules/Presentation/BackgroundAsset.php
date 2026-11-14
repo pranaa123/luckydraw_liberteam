@@ -15,7 +15,8 @@ final class BackgroundAsset
     public function owned(mixed $path): ?string
     {
         $path = self::validate($path);
-        if ($path !== null && !$this->event->database->query('SELECT path FROM doorprize.background_assets WHERE event_id=? AND path=?', [$this->event->id,$path])) {
+        $ready = BackgroundStorage::cloud() ? ' AND ready' : '';
+        if ($path !== null && !$this->event->database->query('SELECT path FROM doorprize.background_assets WHERE event_id=? AND path=?' . $ready, [$this->event->id,$path])) {
             throw new ApiError('Gambar background tidak ditemukan. Upload kembali gambar tersebut.');
         }
         return $path;
@@ -24,6 +25,10 @@ final class BackgroundAsset
     public function serve(string $path): void
     {
         if (!$this->owned($path)) throw new ApiError('Gambar tidak ditemukan.', 404);
+        if (BackgroundStorage::cloud()) {
+            header('Location: ' . (new BackgroundStorage())->downloadUrl($this->event->id, $path), true, 302);
+            return;
+        }
         $bytes = file_get_contents(BASE_PATH . '/public' . $path);
         header('Content-Type: ' . ['png'=>'image/png','jpg'=>'image/jpeg','webp'=>'image/webp'][pathinfo($path, PATHINFO_EXTENSION)]);
         header('Content-Length: ' . strlen($bytes));
@@ -34,7 +39,7 @@ final class BackgroundAsset
     {
         if ($path === null || $path === '') return null;
         if (!is_string($path) || !preg_match('~^/assets/backgrounds/[a-f0-9]{32}\.(png|jpg|webp)$~D', $path)
-            || !is_file(BASE_PATH . '/public' . $path)) {
+            || (!BackgroundStorage::cloud() && !is_file(BASE_PATH . '/public' . $path))) {
             throw new ApiError('Gambar background tidak ditemukan. Upload kembali gambar tersebut.');
         }
         return $path;
@@ -49,11 +54,8 @@ final class BackgroundAsset
         }
         $bytes = file_get_contents($file['tmp_name'], false, null, 0, self::MAX_BYTES + 1);
         if ($bytes === false || strlen($bytes) > self::MAX_BYTES) throw new ApiError('Ukuran gambar maksimal 20 MB.', 413);
-        $image = @getimagesizefromstring($bytes);
+        $image = self::image($bytes);
         $extensions = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/webp' => 'webp'];
-        if (!$image || !isset($extensions[$image['mime'] ?? '']) || $image[0] > 32768 || $image[1] > 32768) {
-            throw new ApiError('Gunakan gambar PNG, JPG, atau WebP dengan ukuran maksimal 32768 pixel per sisi.');
-        }
         $directory = BASE_PATH . '/public/assets/backgrounds';
         if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) throw new \RuntimeException('Direktori gambar belum dapat dibuat.');
         $path = '/assets/backgrounds/' . bin2hex(random_bytes(16)) . '.' . $extensions[$image['mime']];
@@ -67,6 +69,16 @@ final class BackgroundAsset
             @unlink(BASE_PATH . '/public' . $path);
             throw $error;
         }
-        return ['path' => $path, 'width' => $image[0], 'height' => $image[1], 'mime' => $image['mime']];
+        return ['path' => $path, ...$image];
+    }
+
+    public static function image(string $bytes): array
+    {
+        if (strlen($bytes) > self::MAX_BYTES) throw new ApiError('Ukuran gambar maksimal 20 MB.', 413);
+        $image = @getimagesizefromstring($bytes);
+        if (!$image || !in_array($image['mime'] ?? '', ['image/png','image/jpeg','image/webp'], true) || $image[0] > 32768 || $image[1] > 32768) {
+            throw new ApiError('Gunakan gambar PNG, JPG, atau WebP dengan ukuran maksimal 32768 pixel per sisi.');
+        }
+        return ['width'=>$image[0], 'height'=>$image[1], 'mime'=>$image['mime']];
     }
 }

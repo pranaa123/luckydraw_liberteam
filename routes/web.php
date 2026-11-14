@@ -66,13 +66,7 @@ return [
         'POST' => static fn () => JsonApi::respond($config, SettingsService::class),
     ],
     '/api/backgrounds' => [
-        'POST' => static fn () => JsonApi::run(static function () use ($config): array {
-            $session = (new \App\Modules\Auth\AuthService($config))->requireSession();
-            $session->assertRequest();
-            JsonApi::assertSameOrigin();
-            $event = new \App\Modules\Events\EventContext(new \App\Core\Database($config['database'], $session->userId), $session->userId);
-            return (new BackgroundAsset($event))->upload($_FILES);
-        }),
+        'POST' => static fn () => (new \App\Modules\Presentation\BackgroundController($config))->upload(),
     ],
     '/api/health' => static function (): void {
         header('Content-Type: application/json; charset=utf-8');

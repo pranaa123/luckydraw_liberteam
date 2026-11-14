@@ -9,6 +9,7 @@ COPY public ./public
 RUN npm run build
 
 FROM dunglas/frankenphp:1-php8.3-alpine AS runtime
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 RUN install-php-extensions pdo_pgsql mbstring curl
 WORKDIR /app
 COPY app ./app

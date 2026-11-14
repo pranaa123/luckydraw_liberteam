@@ -147,11 +147,11 @@ Dokumen ini menyimpan kebutuhan pengguna dan klarifikasi yang telah disepakati d
 ## Target layanan dan akun pemilik — 14 November 2026
 
 - Repository aplikasi baru: https://github.com/pranaa123/luckydraw_liberteam.
-- Vercel: kapsul/tim `photobooth`, proyek `luckydraw-liberteam`; pengguna menyatakan belum ada produksi.
+- Vercel: **Kapsul Photobooth** (slug terverifikasi `kapsul-photobooth`), proyek `luckydraw-liberteam`. Domain yang diminta `luckydraw-liberteam.vercel.app`; belum ada produksi saat tujuan awal ditentukan.
 - Supabase khusus aplikasi baru: https://supabase.com/dashboard/project/mjqkrtrjrctdqnbzbbwb (project ref `mjqkrtrjrctdqnbzbbwb`).
 - Identitas login menggunakan email. Akun pemilik disiapkan secara lokal; identitas login dan kredensial tidak dicatat di repository. Hanya hash password yang disimpan dalam database privat.
 - Tahap ini menyediakan satu akun pemilik tanpa pendaftaran umum. Sesi persisten 30 hari, logout membatalkan sesi dan menutup visual terkait. Data workspace lokal dipertahankan untuk akun pemilik awal.
-- Target layanan sudah ditetapkan; Git lokal aplikasi baru dan remote origin telah disiapkan secara terpisah. Koneksi database cloud dan deployment tetap pekerjaan terpisah. Jangan mengambil konfigurasi/kredensial aplikasi lama.
+- Target layanan sudah ditetapkan; Git lokal aplikasi baru dan remote origin telah disiapkan secara terpisah. Koneksi database cloud dan preview Container telah diverifikasi; rincian terbaru di docs/DEPLOYMENT.md. Jangan mengambil konfigurasi/kredensial aplikasi lama.
 
 ## Status implementasi
 
@@ -168,7 +168,7 @@ Dokumen ini menyimpan kebutuhan pengguna dan klarifikasi yang telah disepakati d
 - Koreksi huruf terus acak sampai Stop sudah diterapkan. Stop menghentikan glyph dan menampilkan seluruh nama terpilih dengan tata letak adaptif.
 - Filter bertingkat tersedia pada undian dan daftar peserta, dengan switch, multi nilai, Pilih semua, pengecualian serta paginasi nilai. Daftar peserta mendukung pencarian awalan nama, filter status, pilihan lintas halaman/seluruh hasil dan edit massal status/nama/isian. Status Pemenang/Duplikat tetap dikelola proses terkait. Filter undian terakhir disimpan saat Mulai dan indeksnya diperbarui secara bertahap saat data berubah.
 - Import Excel/Google Sheets, aturan duplikasi, daftar pemenang historis lengkap dan PDF sudah tersedia. Login email/password, logout, sesi 30 hari, CSRF dan RLS pemilik sudah diimplementasikan.
-- Database pengembangan lokal sudah tersedia. Belum ada koneksi database cloud atau deployment. Target GitHub, Vercel dan Supabase khusus aplikasi baru sudah ditetapkan pada catatan di atas.
+- Database pengembangan lokal sudah tersedia. Koneksi Supabase dan preview cloud PHP sudah diuji; database lokal dipertahankan terpisah. Target GitHub, Vercel dan Supabase khusus aplikasi baru sudah ditetapkan pada catatan di atas.
 
 ## Klarifikasi integrasi Google Sheets
 

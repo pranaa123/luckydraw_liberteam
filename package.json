@@ -26,7 +26,8 @@
     "check:canvas:browser": "node scripts/check-canvas-browser.mjs",
     "seed:sample": "node scripts/seed-sample-participants.mjs",
     "check:auth": "node scripts/check-auth.mjs",
-    "check:auth:browser": "node scripts/check-auth-browser.mjs"
+    "check:auth:browser": "node scripts/check-auth-browser.mjs",
+    "check:cloud": "node scripts/check-cloud.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.16",

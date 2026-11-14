@@ -1,4 +1,5 @@
 import { apiRequest } from './api-client.js';
+import { uploadBackground } from './background-client.js';
 import { element } from './ui.js';
 import { prizeStore } from './prize-store.js';
 import { presentationState } from './presentation-state.js';
@@ -177,12 +178,11 @@ export class SettingsController {
     if (file.size > 20 * 1024 * 1024) { this.error('Ukuran gambar maksimal 20 MB.'); input.value = ''; return; }
     const prize = prizeId === null ? null : prizeStore.items.find(prize => Number(prize.id) === prizeId);
     if (prizeId !== null && !prize) { this.error('Pilih hadiah terlebih dahulu.'); return; }
-    const body = new FormData(); body.append('background', file);
     this.uploading = true;
     input.disabled = true;
     this.error(''); this.status();
     try {
-      const asset = await apiRequest('/api/backgrounds', body);
+      const asset = await uploadBackground(file);
       if (prize) this.assignBackground(prize, asset.path);
       else {
         const state = structuredClone(presentationState.packet.state);

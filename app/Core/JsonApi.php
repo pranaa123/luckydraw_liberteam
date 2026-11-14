@@ -39,10 +39,7 @@ final class JsonApi
 
     public static function assertSameOrigin(): void
     {
-        $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-        $host = $_SERVER['HTTP_HOST'] ?? '';
-        $scheme = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
-        if ($host === '' || $origin !== $scheme . '://' . $host) throw new ApiError('Asal permintaan tidak diizinkan.', 403);
+        RequestOrigin::assertSameOrigin();
     }
 
     public static function run(callable $operation): void
