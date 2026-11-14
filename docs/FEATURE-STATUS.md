@@ -11,7 +11,7 @@ Status diperbarui: 14 November 2026. Acuan: `BRIEF.md`, implementasi PHP/JavaScr
 | Struktur proyek | PHP 8.3 modular, core tipis, route, konfigurasi sendiri, sumber/build Tailwind lokal | Cloud belum diuji |
 | Antarmuka operator | Navigasi satu halaman, preview sticky, kontrol undian aktif dan sama tinggi, Mulai selebar tiga tombol bawah, filter bertingkat, pilihan/edit massal, layout responsif | Koneksi nyata membutuhkan pemasangan konektor |
 | Warna dan komponen | Dominan putih, aksen biru, tombol hijau/merah sesuai fungsi | Konsistensi perlu diteruskan saat komponen baru dibuat |
-| Standby dan animasi | Glyph terus acak dengan flip per huruf sampai Stop, mengikuti pengaturan dan putaran nyata; hasil muncul saat Stop | Reduced motion mengganti glyph tanpa flip |
+| Standby dan animasi | Nama peserta layak berganti cepat dan halus sampai Stop; preview/output sinkron, hasil muncul saat Stop | Maksimal 512 nama sekali, dua node; reduced motion tanpa gerak |
 | Persiapan | Edit/simpan acara, canvas/area/posisi pixel, warna/gambar, font dan penulisan; sinkronisasi konfigurasi tanpa polling | Draft harus disimpan agar bertahan setelah refresh |
 | Hadiah | CRUD, urutan, background, alokasi manual/acak, stok hanya saat Sahkan | Snapshot hadiah dipakai pada laporan |
 | Pemilihan layar | Izin Window Management, pilihan monitor, fullscreen langsung dari operator, kontrol operator terpisah | Dukungan utama Chrome desktop modern dan layar Extend; perlu izin layar/popup |
@@ -40,7 +40,7 @@ Status diperbarui: 14 November 2026. Acuan: `BRIEF.md`, implementasi PHP/JavaScr
 - [x] Warna background dan upload PNG/JPG/WebP dengan file/resolusi asli.
 - [x] Tautan background per hadiah dan pemicu dari undian nyata: satu jenis memakai background khusus; beberapa jenis memakai background utama.
 - [x] Warna font seluruh output, empat gaya font, dan uppercase/lowercase/sentence style.
-- [x] Tambah/edit/hapus maksimal tiga isian tambahan; Nama tetap menjadi isian wajib.
+- [x] Tambah/edit/hapus maksimal 10 isian tambahan di luar Nama; Nama tetap menjadi isian wajib.
 - [x] Label tambahan dipakai pada formulir manual dan tabel peserta. Penghapusan membersihkan nilai slot peserta, mempertahankan snapshot hasil.
 - [x] Isian tambahan/snapshot label dipakai pada hasil undian.
 - [x] Isian tambahan dipakai pada filter undian/daftar peserta dan edit massal.
@@ -92,9 +92,9 @@ Status diperbarui: 14 November 2026. Acuan: `BRIEF.md`, implementasi PHP/JavaScr
 - [x] Pemilihan acak seragam peserta available melalui pool berindeks, tanpa hasil berulang dalam satu putaran.
 - [x] Filter bertingkat dalam pemilihan peserta; pool berfilter dicache dan dirawat per perubahan peserta.
 - [x] Mulai berubah menjadi Stop dan menjalankan putaran nyata.
-- [x] Animasi split-flap satu baris besar tanpa kotak, glyph terus acak dengan tempo berbeda dan dukungan reduced motion; kontrol uji/nyata tersinkron antarjendela tanpa request data selama animasi.
+- [x] Animasi satu baris nama peserta asli, berganti cepat dan halus sampai Stop, dengan reduced motion; preview/output tersinkron tanpa request data selama animasi.
 - [x] Hubungkan animasi dengan putaran nyata dan hasilnya; tombol Coba animasi telah dihapus, animasi hanya mengikuti putaran nyata.
-- [x] Koreksi terbaru: glyph terus acak hingga Stop tanpa siklus membentuk nama. Start tidak membaca nama untuk kebutuhan visual.
+- [x] Revisi terbaru: sampel visual maksimal 512 nama dari pool terindeks; urutan bervariasi dan tidak berulang dalam satu siklus. Pemilihan pemenang terpisah di server.
 - [x] Stop menampilkan seluruh nama/isian/hadiah dengan ukuran/jarak adaptif.
 - [x] Sahkan semua hasil, eliminasi semua hasil, dan kosongkan hasil.
 - [x] Peserta yang tidak disahkan tetap layak undi kecuali dieliminasi.

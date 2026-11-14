@@ -30,7 +30,7 @@ Pada **Undian**, atur jumlah nama dan mode hadiah, lalu **Mulai → Stop → Sah
 
 Pada **Peserta**, gunakan pencarian awalan nama dan satu **Filter peserta**. Status menjadi kelompok pertama, disusul Nama/isian; seluruhnya memakai switch, multi-centang dan Pilih semua. Checkbox mempertahankan pilihan antarhalaman; **Pilih semua hasil** memilih keseluruhan hasil filter tanpa mengunduh semua ID. Checkbox baris dapat mengecualikan peserta dari pilihan seluruh hasil. **Edit massal** mengubah status, nama atau satu isian untuk pilihan tersebut. Status Pemenang/Duplikat tetap dilindungi; perubahan ditolak seluruhnya bila pilihan/skema sudah berubah. Semua mutasi dicatat dalam riwayat.
 
-Hasil dan animasi nyata tersinkron antarjendela melalui paket perubahan, tanpa polling. Refresh/restart memulihkan putaran yang sedang berjalan/hasil tersimpan. Selama pengacakan, satu baris glyph terus berubah dengan flip per huruf dan tempo bervariasi, tanpa siklus membentuk nama. Nama terpilih baru ditampilkan setelah Stop. Mulai tidak membaca sampel nama untuk kebutuhan visual.
+Hasil dan animasi nyata tersinkron antarjendela melalui paket perubahan, tanpa polling. Refresh/restart memulihkan putaran yang sedang berjalan/hasil tersimpan. Selama pengacakan, satu baris nama peserta layak berganti cepat dan halus sampai Stop. Mulai mengambil maksimal 512 nama sekali melalui posisi pool terindeks; renderer memakai dua node tanpa request API per frame. Nama hasil nyata baru ditentukan setelah Stop.
 
 **Riwayat → Pemenang** menampilkan hasil yang sudah disahkan, 50 pemenang per halaman. Klik **Export PDF** untuk mengunduh A4 landscape dengan font minimal 12, informasi acara dan halaman/total di setiap lembar. Nama/isian/hadiah memakai snapshot undian; nilai/label lama tetap benar sesudah data diedit. **Aktivitas** mempertahankan audit operator dengan paginasi tersendiri.
 
@@ -122,7 +122,7 @@ Login email/password memakai sesi acak 30 hari dalam database privat `doorprize_
 
 ## Batas tahap ini
 
-Navigasi satu halaman, preview standby, jendela output, dan tombol fullscreen sudah bekerja. Peserta bisa diinput manual, diedit, dan dihapus; hadiah dan maksimal tiga isian tambahan juga dapat dikelola dan tersimpan. Daftar peserta memakai paginasi 50 baris. Pensil/× digunakan konsisten untuk edit/hapus. Nama adalah isian wajib yang tidak dapat dihapus.
+Navigasi satu halaman, preview standby, jendela output, dan tombol fullscreen sudah bekerja. Peserta bisa diinput manual, diedit, dan dihapus; hadiah dan maksimal 10 isian tambahan di luar Nama juga dapat dikelola dan tersimpan. Daftar peserta memakai paginasi 50 baris. Pensil/× digunakan konsisten untuk edit/hapus. Nama adalah isian wajib yang tidak dapat dihapus.
 
 Persiapan, undian, filter, edit massal dan riwayat aktivitas tersedia. Background mendukung PNG/JPG/WebP maksimal 20 MB, canvas maksimal 32768 px per sisi, area nama wajib berada di dalam canvas. Hadiah dapat diurutkan; jumlah total mempertahankan unit yang sudah terpakai dan stok berkurang hanya saat Sahkan. Peserta/hadiah yang sudah dirujuk hasil undian tidak dapat dihapus. Import Excel/template/pratinjau dan aturan duplikasi tersedia. Google Sheets melalui konektor sekali pasang tersedia. Daftar pemenang historis dan PDF tersedia. Login, logout, sesi persisten dan akses pemilik tersedia.
 
@@ -136,7 +136,7 @@ Lihat [BRIEF.md](BRIEF.md) untuk kebutuhan lengkap dan [docs/ARCHITECTURE.md](do
 
 ## Import Excel
 
-Di menu Peserta, klik **Import Excel → Unduh template**. Template mengikuti Nama dan maksimal tiga isian tambahan; sheet Peserta siap diisi mulai baris 7, sheet Panduan berisi contoh terpisah. Judul, tabel zebra/filter, header beku dan format teks menjaga kerapian serta nol di depan nomor/ID.
+Di menu Peserta, klik **Import Excel → Unduh template**. Template mengikuti Nama dan maksimal 10 isian tambahan di luar Nama; sheet Peserta siap diisi mulai baris 7, sheet Panduan berisi contoh terpisah. Judul, tabel zebra/filter, header beku dan format teks menjaga kerapian serta nol di depan nomor/ID.
 
 Pilih .xlsx, periksa sheet/header dan pemetaan otomatis, pilih kunci duplikasi lalu **Pratinjau → Import peserta**. Pratinjau menampilkan Tersedia/Duplikat/Tidak valid dengan paginasi; baris tidak valid dilewati dan jumlahnya jelas sebelum menyimpan. Kunci harus semuanya terisi dan cocok tanpa membedakan huruf besar/kecil; tanpa kunci tidak ada deduplikasi. Ubah aturan yang sudah tersimpan melalui **Persiapan → Aturan duplikasi**. Data baru yang lebih rapi bisa menggantikan keeper lama; status Pemenang/Tereliminasi tetap dilindungi.
 
