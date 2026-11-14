@@ -1,0 +1,13 @@
+.git
+.env
+.env.*
+!.env.example
+.cache
+node_modules
+storage
+public/assets/backgrounds/*
+!public/assets/backgrounds/.gitkeep
+supabase/.temp
+supabase/.branches
+tests
+*.log

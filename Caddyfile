@@ -1,0 +1,9 @@
+:{$PORT:80} {
+    root * /app/public
+    encode zstd gzip
+    @backgrounds path /assets/backgrounds/*
+    rewrite @backgrounds /index.php
+    php_server {
+        env REQUEST_URI {http.request.orig_uri}
+    }
+}

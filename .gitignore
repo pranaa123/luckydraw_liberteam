@@ -1,0 +1,32 @@
+# Konfigurasi dan identitas lokal; hanya contoh kosong yang masuk Git.
+.env
+.env.*
+!.env.example
+/.vercel/
+/.supabase/
+/.codex/
+/.agents/
+
+# Dependensi dan cache pengembangan.
+/node_modules/
+/vendor/
+/.cache/
+/supabase/.temp/
+/supabase/.branches/
+
+# Seluruh data acara, sesi, kunci, log dan upload tetap lokal.
+/storage/
+/public/assets/backgrounds/*
+!/public/assets/backgrounds/.gitkeep
+*.log
+*.dump
+*.backup
+*.sqlite
+*.sqlite3
+*.sql.gz
+*.pem
+*.key
+*.p12
+*.pfx
+
+.DS_Store

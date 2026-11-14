@@ -1,0 +1,41 @@
+{
+  "name": "doorprize-baru",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-assets.mjs && tailwindcss -i resources/css/app.css -o public/assets/app.css --minify",
+    "watch": "tailwindcss -i resources/css/app.css -o public/assets/app.css --watch",
+    "dev": "node scripts/dev.mjs",
+    "check": "node scripts/check.mjs && node scripts/check-auth.mjs && node scripts/check-management.mjs && node scripts/check-settings.mjs && node scripts/check-canvas.mjs && node scripts/check-result-layout.mjs && node scripts/check-draws.mjs && node scripts/check-winners.mjs && node scripts/check-winner-pdf.mjs && node scripts/check-filters.mjs && node scripts/check-imports.mjs && node scripts/check-google-connector.mjs && node scripts/check-google-sheets.mjs && node scripts/check-supabase-schema.mjs",
+    "check:browser": "node scripts/check-output-browser.mjs",
+    "check:management:browser": "node scripts/check-management-browser.mjs",
+    "check:settings:browser": "node scripts/check-settings-browser.mjs",
+    "check:animation:browser": "node scripts/check-animation-browser.mjs",
+    "check:draws:browser": "node scripts/check-draws-browser.mjs",
+    "check:results:browser": "node scripts/check-results-browser.mjs",
+    "check:winners": "node scripts/check-winners.mjs && node scripts/check-winner-pdf.mjs",
+    "check:winners:browser": "node scripts/check-winners-browser.mjs",
+    "check:filters:browser": "node scripts/check-filters-browser.mjs",
+    "check:imports": "node scripts/check-imports.mjs",
+    "check:imports:browser": "node scripts/check-imports-browser.mjs",
+    "check:google": "node scripts/check-google-connector.mjs && node scripts/check-google-sheets.mjs",
+    "check:google:browser": "node scripts/check-google-browser.mjs",
+    "check:supabase-schema": "node scripts/check-supabase-schema.mjs",
+    "check:canvas": "node scripts/check-canvas.mjs && node scripts/check-result-layout.mjs",
+    "check:canvas:browser": "node scripts/check-canvas-browser.mjs",
+    "seed:sample": "node scripts/seed-sample-participants.mjs",
+    "check:auth": "node scripts/check-auth.mjs",
+    "check:auth:browser": "node scripts/check-auth-browser.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.16",
+    "@php-wasm/node-8-3": "3.1.63",
+    "@php-wasm/universal": "3.1.63",
+    "@tailwindcss/cli": "4.3.5",
+    "exceljs": "4.4.0",
+    "pdfjs-dist": "5.4.624",
+    "pdfmake": "0.2.23",
+    "tailwindcss": "4.3.5"
+  }
+}
