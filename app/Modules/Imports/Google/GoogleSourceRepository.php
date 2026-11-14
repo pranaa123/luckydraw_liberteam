@@ -119,7 +119,15 @@ final class GoogleSourceRepository
 
     public function hasInitial(): bool
     {
-        return (bool) $this->event->database->query("SELECT 1 FROM doorprize.google_sources g JOIN doorprize.import_sources s ON s.id = g.source_id AND s.event_id = g.event_id WHERE g.event_id = ? AND s.sync_enabled AND NOT g.initial_complete AND (g.connection_mode='script' OR (g.phase='initial' AND g.failure_count=0)) AND (s.closes_at IS NULL OR s.closes_at > now()) LIMIT 1", [$this->event->id]);
+        $guard=self::initialGuard('g','s');
+        return (bool) $this->event->database->query("SELECT 1 FROM doorprize.google_sources g JOIN doorprize.import_sources s ON s.id = g.source_id AND s.event_id = g.event_id WHERE g.event_id = ? AND {$guard} LIMIT 1", [$this->event->id]);
+    }
+
+    /** Satu aturan untuk validasi Mulai dan penanda kunci pada state operator. */
+    public static function initialGuard(string $source,string $import): string
+    {
+        if(!preg_match('/^[a-z]+$/D',$source)||!preg_match('/^[a-z]+$/D',$import))throw new \LogicException('Alias sumber tidak valid.');
+        return "{$import}.sync_enabled AND NOT {$source}.initial_complete AND ({$source}.connection_mode='script' OR ({$source}.phase='initial' AND {$source}.failure_count=0)) AND ({$import}.closes_at IS NULL OR {$import}.closes_at>now())";
     }
 
     public function reset(int $id, array $cursor): void

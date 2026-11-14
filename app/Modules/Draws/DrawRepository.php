@@ -6,6 +6,7 @@ namespace App\Modules\Draws;
 
 use App\Modules\Events\FieldSchema;
 use App\Modules\Events\EventContext;
+use App\Modules\Imports\Google\GoogleSourceRepository;
 use App\Modules\Participants\DrawFilterPoolRepository;
 use App\Modules\Participants\ParticipantFilter;
 
@@ -125,7 +126,8 @@ final class DrawRepository
     /** Satu snapshot SQL untuk versi, layar, hasil dan jumlah tersedia. */
     public function state(bool $withAnimation = true): array
     {
-        $row = $this->event->database->query("SELECT EXISTS(SELECT 1 FROM doorprize.google_sources gs JOIN doorprize.import_sources src ON src.id = gs.source_id AND src.event_id = gs.event_id WHERE gs.event_id = e.id AND src.sync_enabled AND NOT gs.initial_complete AND (src.closes_at IS NULL OR src.closes_at > now())) AS sync_pending, e.draw_version, e.version AS data_version, e.participants_version, e.winner_count, e.prize_mode, e.draw_allocation, e.draw_filters,
+        $syncGuard=GoogleSourceRepository::initialGuard('gs','src');
+        $row = $this->event->database->query("SELECT EXISTS(SELECT 1 FROM doorprize.google_sources gs JOIN doorprize.import_sources src ON src.id = gs.source_id AND src.event_id = gs.event_id WHERE gs.event_id = e.id AND {$syncGuard}) AS sync_pending, e.draw_version, e.version AS data_version, e.participants_version, e.winner_count, e.prize_mode, e.draw_allocation, e.draw_filters,
           CASE WHEN e.filter_pool_active THEN COALESCE((SELECT position FROM doorprize.draw_filter_pool WHERE event_id = e.id ORDER BY position DESC LIMIT 1), 0)
           ELSE COALESCE((SELECT position FROM doorprize.participant_pool WHERE event_id = e.id ORDER BY position DESC LIMIT 1), 0) END AS eligible_count,
           COALESCE((SELECT position FROM doorprize.participant_pool WHERE event_id = e.id ORDER BY position DESC LIMIT 1), 0) AS available_count,
