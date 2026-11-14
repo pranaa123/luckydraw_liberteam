@@ -2,14 +2,14 @@
 
 Status diperbarui: 14 November 2026. Acuan: `BRIEF.md`, implementasi PHP/JavaScript/SQL, serta pengujian pengelolaan data dan browser.
 
-**Fondasi, Persiapan, pengelolaan data, mesin undian, filter, edit massal, hasil adaptif, hadiah/stok dan riwayat aktivitas tersedia dengan penyimpanan lokal persisten. Preview/output tersinkron tanpa polling.** Animasi terus acak sampai Stop; nama terpilih baru muncul setelah Stop. Import Excel beserta template terformat, pemetaan/pratinjau dan aturan duplikasi sudah tersedia. Google Sheets dengan konektor sekali pasang dan sinkronisasi bertahap juga tersedia. Daftar pemenang historis dan PDF tersedia; login email/password, sesi 30 hari dan akses pemilik tersedia.
+**Fondasi, Persiapan, pengelolaan data, mesin undian, filter, edit massal, hasil adaptif, hadiah/stok dan riwayat aktivitas tersedia dengan penyimpanan lokal persisten. Preview/output tersinkron tanpa polling.** Animasi terus acak sampai Stop; nama terpilih baru muncul setelah Stop. Import Excel beserta template terformat, pemetaan/pratinjau dan aturan duplikasi sudah tersedia. Google Sheets melalui Viewer + link, satu koneksi per acara dan pemeriksaan versi/kolom bertahap tersedia. Daftar pemenang historis dan PDF tersedia; login email/password, sesi 30 hari dan akses pemilik tersedia.
 
 ## Sudah tersedia
 
 | Bagian | Implementasi saat ini | Batas |
 | --- | --- | --- |
 | Struktur proyek | PHP 8.3 modular, core tipis, route, konfigurasi sendiri, sumber/build Tailwind lokal | Cloud belum diuji |
-| Antarmuka operator | Navigasi satu halaman, preview sticky, kontrol undian aktif dan sama tinggi, Mulai selebar tiga tombol bawah, filter bertingkat, pilihan/edit massal, layout responsif | Koneksi nyata membutuhkan pemasangan konektor |
+| Antarmuka operator | Navigasi satu halaman, preview sticky, kontrol undian aktif dan sama tinggi, Mulai selebar tiga tombol bawah, filter bertingkat, pilihan/edit massal, layout responsif | Google Sheets: Viewer + link, satu koneksi per acara |
 | Warna dan komponen | Dominan putih, aksen biru, tombol hijau/merah sesuai fungsi | Konsistensi perlu diteruskan saat komponen baru dibuat |
 | Standby dan animasi | Nama peserta layak berganti cepat dan halus sampai Stop; preview/output sinkron, hasil muncul saat Stop | Maksimal 512 nama sekali, dua node; reduced motion tanpa gerak |
 | Persiapan | Edit/simpan acara, canvas/area/posisi pixel, warna/gambar, font dan penulisan; sinkronisasi konfigurasi tanpa polling | Draft harus disimpan agar bertahan setelah refresh |
@@ -116,7 +116,7 @@ Status diperbarui: 14 November 2026. Acuan: `BRIEF.md`, implementasi PHP/JavaScr
 
 - [x] Uji lokal 50.000+ peserta/100 hasil: Mulai 81 ms, Stop 77 ms, Sahkan 15 ms pada runtime/mesin pengujian.
 - [x] Uji filter/edit massal dan cache tidak valid; pada 50.000+ peserta/100 hasil, pembentukan filter pertama 235 ms, ulang 11 ms, Stop 115 ms. Pengukuran khusus runtime lokal ini, bukan jaminan semua perangkat/hosting.
-- [ ] Uji waktu respons pada perangkat/hosting dan data acara nyata; Google Sheets nyata masih perlu pemasangan konektor dan pengujian akun pengguna.
+- [ ] Uji waktu respons pada perangkat/hosting dan data acara nyata; Sheet privat pengguna masih memerlukan share Viewer dan uji sumbernya.
 - [x] Uji integrasi CRUD, validasi, versi, struktur isian, rollback audit, isolasi acara, paginasi, kunci direktori database, dan persistensi setelah runtime dibuka ulang.
 - [x] Uji browser formulir tambah/edit/hapus, validasi, refresh, toolbar, tombol seragam, dan overflow pada lebar 390–1920px.
 - [x] Uji transaksi undian, pool, snapshot, stok/status, retry, restart di tiga fase; browser 6/20 hasil, background, refresh, respons hilang, request paralel, riwayat dan mobile. PDO native/konkurensi native belum diverifikasi.
@@ -130,7 +130,7 @@ Status diperbarui: 14 November 2026. Acuan: `BRIEF.md`, implementasi PHP/JavaScr
 ## Urutan lanjutan yang disarankan
 
 1. Undian, Excel/template, aturan duplikasi dan Google Sheets sudah tersedia di lokal.
-2. Pasang konektor pada spreadsheet pengguna dan uji koneksi Google sebenarnya.
+2. Bagikan spreadsheet pengguna sebagai Viewer ke email aplikasi lalu periksa link/pemetaan.
 3. Login/sesi, identitas/akses pemilik dan CSRF sudah tersedia lokal; lengkapi Supabase Storage dan verifikasi HTTPS sebelum publikasi.
 4. Daftar pemenang/PDF tersedia; lanjut uji perangkat nyata, monitor fisik, PDO/pooler dan deployment Vercel/Supabase.
 
@@ -190,3 +190,9 @@ Build dan seluruh `npm run check` lulus. Pada 50.000+ peserta/100 hasil: Mulai 9
 Tersedia pada Persiapan → Acara baru. Dialog ringkas memuat jumlah peserta/hadiah/pemenang, ketik RESET, dan penegasan penghapusan permanen. Data dan pengaturan baru benar-benar kosong; akun/sesi tetap, urutan undian kembali 1, tab lama ditolak dan layar output kembali standby dengan fullscreen dipertahankan. Sumber Sheets/import lama dihapus agar tidak mengisi kembali acara baru.
 
 Uji mencakup confirmed + rolling, FK/staging/duplikasi, rollback penuh saat pembuatan acara baru gagal, isolasi pemilik, konfirmasi/versi, scope tab lama, pembersihan background, sesi tetap dan reset berulang. Lokal 1.000 peserta sekitar 43–46 ms; stress penghapusan 50.000 peserta sekitar 1,8–1,9 detik. Cloud dengan akun QA: reset 1.000 peserta dan dua request bersamaan 403 ms (satu berhasil, satu 409), cookie tetap, Storage dibersihkan dan sequence baru 1. Batas <1000 ms pada undian/filter tetap dipertahankan. Browser menguji Batal, tab/preview, kedua jalur fullscreen dan dialog 375 px. Advisor Supabase tanpa peringatan setelah migrasi.
+
+## Revisi Reader satu koneksi
+
+Alur utama tidak lagi meminta Apps Script: Viewer → link → Periksa → pemetaan → Hubungkan. Pemeriksaan/batal tidak membuat sumber. Satu koneksi dijamin indeks database; sumber lama diputus atomik hanya setelah pengganti valid. Draft/terputus tidak menjadi daftar dan peserta dipertahankan. Pemindaian memeriksa versi file, melewati isi jika tetap, lalu memproses kolom terpakai maksimal 200 baris. Header dan nilai formatted/raw digabung dalam satu Sheets GET untuk mengurangi jaringan. ID Timestamp/unik terpisah dari duplikasi; penghapusan hanya dari snapshot lengkap/stabil. Jalur konektor lama tetap kompatibel untuk sumber terdahulu.
+
+Browser fixture menguji satu kartu, batal tanpa daftar, pengganti gagal tidak memutus koneksi, putus tanpa hapus peserta dan undian saat Google lambat (64 ms lokal). Preview PHP native berhasil membaca 30 baris spreadsheet contoh resmi Google; uji undian aktif 165–229 ms. Angka pembacaan awal Google bergantung pada otorisasi, jaringan dan layanan eksternal; bukan jaminan di bawah satu detik. Sheet privat pengguna masih memerlukan Viewer.

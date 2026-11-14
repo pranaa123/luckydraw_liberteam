@@ -4,6 +4,7 @@ import { mkdir, open, readFile, readdir, unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { projectRoot } from './php-runtime.mjs';
 import { createGoogleHttpBridge } from './google-http-bridge.mjs';
+import { createReaderBridge } from './google-reader-bridge.mjs';
 
 export async function openLocalDatabase(path = resolve(projectRoot, 'storage/database')) {
   if (path !== 'memory://') await mkdir(path, { recursive: true });
@@ -58,8 +59,16 @@ async function lockDatabase(path) {
 
 export function connectPortableDatabase(php, database, options = {}) {
   const google = createGoogleHttpBridge(options.google);
+  const reader = createReaderBridge(options.reader);
   return php.onMessage(async (message) => {
     const request = JSON.parse(message);
+    if (request.type === 'google_reader_identity') {
+      try {
+        const {googleDevelopmentIdentity} = await import('./refresh-google-reader.mjs');
+        return JSON.stringify({token:await googleDevelopmentIdentity()});
+      } catch { return JSON.stringify({error:true}); }
+    }
+    if (request.type === 'google_reader_http') return JSON.stringify(reader(request));
     if (request.type === 'google_http') return JSON.stringify(google(request));
     if (request.type !== 'database') throw new Error('Pesan runtime tidak dikenal.');
     try {

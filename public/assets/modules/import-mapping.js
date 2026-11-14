@@ -22,7 +22,7 @@ export class ImportMapping {
   value() {
     const result = Object.fromEntries([...this.selects].filter(([, select]) => select.value).map(([key, select]) => [key, Number(select.value)]));
     if (!result.name) throw new Error('Tentukan kolom Nama.');
-    if (new Set(Object.values(result)).size !== Object.keys(result).length) throw new Error('Satu kolom Excel hanya boleh dipakai untuk satu isian.');
+    if (new Set(Object.values(result)).size !== Object.keys(result).length) throw new Error('Satu kolom hanya boleh dipakai untuk satu isian.');
     return result;
   }
 }

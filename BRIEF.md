@@ -230,3 +230,10 @@ Pengguna meminta reset agar aplikasi dapat digunakan benar-benar dari nol untuk 
 - Alur utama Google Sheets disepakati akun layanan khusus aplikasi dengan akses Viewer pada sheet privat. Operator membagikan sheet ke email aplikasi dan memasukkan link; tidak perlu Apps Script. Pengaturan Cloud/keyless dan integrasi pembaca baru masih dalam pengembangan, belum dianggap aktif. Konektor lama dipertahankan selama transisi.
 - Kegagalan Google tidak boleh menghapus data tersimpan; undian memakai data lokal/database dan tidak bergantung panggilan Google. Kunci duplikasi tetap mengikuti switch operator.
 - Perubahan background hadiah sebelum pengundian masih dibahas. Jangan mengubah perilakunya sampai pengguna menyepakati alur.
+
+## Koreksi alur Google Sheets
+
+- Pengguna menegaskan hanya satu spreadsheet terkoneksi per acara. Percobaan input tidak boleh menjadi daftar sumber.
+- Alur operator: bagikan Viewer ke email aplikasi → tempel link → Periksa spreadsheet → periksa pemetaan → Hubungkan. Tidak ada Apps Script pada alur utama.
+- Pemeriksaan/batal tidak menyimpan sumber. Penggantian atomik setelah validasi, mempertahankan peserta dan koneksi lama jika gagal. Draft/terputus tidak tampil sebagai daftar.
+- Implementasi API baca memakai cek versi setiap 15 detik, melewati isi jika versi tetap, dan memeriksa kolom terpakai per maksimal 200 baris ketika berubah. Timestamp/ID terpisah dari duplikasi. Eliminasi baris hilang hanya setelah snapshot lengkap/stabil.

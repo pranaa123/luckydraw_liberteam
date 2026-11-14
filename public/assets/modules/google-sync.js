@@ -13,17 +13,25 @@ export class GoogleSync extends EventTarget {
     document.addEventListener('draw-records-changed', () => { this.dispatchEvent(new Event('change')); this.wake(); });
   }
   async start() { try { await this.load(); } catch (error) { this.dispatchEvent(new CustomEvent('error',{ detail: error.message })); } this.wake(); }
-  values() { return [...this.sources.values()].sort((a,b) => Number(b.id) - Number(a.id)); }
+  values() { return [...this.sources.values()].filter(source=>!['draft','disconnected'].includes(source.phase)).sort((a,b) => Number(b.id)-Number(a.id)).slice(0,1); }
   drawPending() { return drawState.state?.draw?.status === 'pending'; }
   update(source,broadcast = true) {
+    this.generation=(this.generation||0)+1;
     const old = this.sources.get(Number(source.id));
     if (old && Number(old.revision) > Number(source.revision)) return;
+    if (!['draft','disconnected'].includes(source.phase)) {
+      for (const [id,item] of this.sources) if (id<Number(source.id) && item.phase!=='draft') this.sources.delete(id);
+    }
     this.sources.set(Number(source.id),source); this.dispatchEvent(new Event('change'));
     if (broadcast) this.channel?.postMessage({ source });
   }
   async load() {
+    const generation=this.generation||0;
     const data = await apiRequest('/api/google-sources');
+    this.reader=data.reader;
+    if (generation===(this.generation||0)) this.sources.clear();
     for (const source of data.items) this.update(source,false);
+    this.dispatchEvent(new Event('change'));
     this.lastLoad = Date.now();
     if (drawState.state && Number(data.data_version) > drawState.state.data_version) this.changed(false,true);
   }

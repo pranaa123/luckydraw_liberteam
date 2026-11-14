@@ -9,7 +9,7 @@ use App\Modules\Events\EventContext;
 
 final class GoogleSourceRepository
 {
-    private const COLUMNS = 'g.source_id AS id, g.revision, g.connection_id, g.endpoint, g.encrypted_secret, g.sheet_id, g.header_row, g.field_schema, g.header_hash, g.metadata,
+    private const COLUMNS = 'g.source_id AS id, g.revision, g.connection_id, g.connection_mode, g.identity_column, g.endpoint, g.encrypted_secret, g.sheet_id, g.header_row, g.field_schema, g.header_hash, g.metadata,
       g.phase, g.initial_complete, g.version, g.lease_id, g.lease_until, g.pending_job_id, g.failure_count, g.next_attempt_at, g.error_code, g.error_message, g.synced_rows, g.invalid_rows,
       g.conflict_rows, g.last_summary, s.spreadsheet_id, s.sheet_name, s.column_mapping, s.sync_cursor, s.sync_enabled, s.closes_at, s.disconnected_at, s.last_synced_at,
       (s.closes_at IS NOT NULL AND s.closes_at <= now()) AS deadline_passed, (g.lease_until > now()) AS leased, (g.next_attempt_at <= now()) AS due';
@@ -25,16 +25,16 @@ final class GoogleSourceRepository
     public function list(): array
     {
         // Tidak membawa kredensial/metadata/isi peserta pada status berkala.
-        return $this->event->database->query('SELECT g.source_id AS id, g.revision, g.phase, g.version, g.sheet_id, g.header_row, g.synced_rows, g.invalid_rows, g.conflict_rows,
+        return $this->event->database->query('SELECT g.source_id AS id, g.revision, g.phase, g.version, g.connection_mode, g.identity_column, g.sheet_id, g.header_row, g.synced_rows, g.invalid_rows, g.conflict_rows,
           g.error_code, g.error_message, g.next_attempt_at, g.last_summary, s.spreadsheet_id, s.sheet_name, s.sync_enabled, s.closes_at, s.last_synced_at,
-          (s.closes_at IS NOT NULL AND s.closes_at <= now()) AS deadline_passed FROM doorprize.google_sources g JOIN doorprize.import_sources s ON s.id = g.source_id AND s.event_id = g.event_id WHERE g.event_id = ? ORDER BY g.source_id DESC LIMIT 50', [$this->event->id]);
+          (s.closes_at IS NOT NULL AND s.closes_at <= now()) AS deadline_passed FROM doorprize.google_sources g JOIN doorprize.import_sources s ON s.id = g.source_id AND s.event_id = g.event_id WHERE g.event_id = ? AND g.phase IN (\'initial\',\'live\',\'paused\',\'closed\') ORDER BY g.source_id DESC LIMIT 1', [$this->event->id]);
     }
 
-    public function create(string $connection, array $address, int $header, string $secret): array
+    public function create(string $connection, array $address, int $header, ?string $secret): array
     {
         $old = $this->event->database->query('SELECT source_id AS id FROM doorprize.google_sources WHERE event_id = ? AND connection_id = ?::uuid', [$this->event->id, $connection]);
         if ($old) return [...$this->find((int) $old[0]['id']), 'created' => false];
-        if ($this->event->database->query("SELECT 1 FROM doorprize.google_sources g JOIN doorprize.import_sources s ON s.id = g.source_id AND s.event_id = g.event_id WHERE g.event_id = ? AND s.spreadsheet_id = ? AND (g.sheet_id IS NULL OR ?::integer IS NULL OR g.sheet_id = ?::integer) AND g.phase <> 'disconnected' LIMIT 1", [$this->event->id,$address['spreadsheet_id'],$address['sheet_id'],$address['sheet_id']])) throw new ApiError('Sheet ini sudah memiliki koneksi. Gunakan pengaturan sumber yang ada.',409);
+        if ($this->event->database->query("SELECT 1 FROM doorprize.google_sources g JOIN doorprize.import_sources s ON s.id = g.source_id AND s.event_id = g.event_id WHERE g.event_id = ? AND s.spreadsheet_id = ? AND (g.sheet_id IS NULL OR ?::integer IS NULL OR g.sheet_id = ?::integer) AND g.phase IN ('initial','live','paused','closed') LIMIT 1", [$this->event->id,$address['spreadsheet_id'],$address['sheet_id'],$address['sheet_id']])) throw new ApiError('Sheet ini sudah memiliki koneksi. Gunakan pengaturan sumber yang ada.',409);
         $id = $this->event->database->query("INSERT INTO doorprize.import_sources (event_id, type, spreadsheet_id) VALUES (?, 'google_sheets', ?) RETURNING id", [$this->event->id, $address['spreadsheet_id']])[0]['id'];
         $this->event->database->query("INSERT INTO doorprize.google_sources (source_id, event_id, connection_id, endpoint, encrypted_secret, sheet_id, header_row) VALUES (?, ?, ?::uuid, '', ?, ?, ?)", [$id, $this->event->id, $connection, $secret, $address['sheet_id'], $header]);
         return [...$this->find((int) $id), 'created' => true];
@@ -97,7 +97,7 @@ final class GoogleSourceRepository
     {
         $this->event->database->query('UPDATE doorprize.import_sources SET sync_cursor = ?::jsonb, last_synced_at = now() WHERE event_id = ? AND id = ?', [json_encode($cursor, JSON_THROW_ON_ERROR), $this->event->id, $id]);
         $this->event->database->query("UPDATE doorprize.google_sources SET revision = revision + 1, phase = ?, initial_complete = (? = 'live'), last_summary = ?::jsonb, synced_rows = synced_rows + ?, invalid_rows = invalid_rows + ?, conflict_rows = conflict_rows + ?,
-          error_code = NULL, error_message = NULL, failure_count = 0, next_attempt_at = now() + CASE WHEN ?::integer = 1 THEN interval '0 seconds' ELSE interval '3 seconds' END, lease_id = NULL, lease_until = NULL, pending_job_id = NULL
+          error_code = NULL, error_message = NULL, failure_count = 0, next_attempt_at = now() + CASE WHEN ?::integer = 1 THEN interval '0 seconds' WHEN connection_mode='reader' THEN interval '15 seconds' ELSE interval '3 seconds' END, lease_id = NULL, lease_until = NULL, pending_job_id = NULL
           WHERE event_id = ? AND source_id = ?", [$phase, $phase, json_encode($summary, JSON_THROW_ON_ERROR), $summary['linked_delta'], $summary['invalid_delta'], $summary['conflict_delta'], (int) ($summary['more'] ?? false), $this->event->id, $id]);
     }
 
@@ -119,7 +119,7 @@ final class GoogleSourceRepository
 
     public function hasInitial(): bool
     {
-        return (bool) $this->event->database->query('SELECT 1 FROM doorprize.google_sources g JOIN doorprize.import_sources s ON s.id = g.source_id AND s.event_id = g.event_id WHERE g.event_id = ? AND s.sync_enabled AND NOT g.initial_complete AND (s.closes_at IS NULL OR s.closes_at > now()) LIMIT 1', [$this->event->id]);
+        return (bool) $this->event->database->query("SELECT 1 FROM doorprize.google_sources g JOIN doorprize.import_sources s ON s.id = g.source_id AND s.event_id = g.event_id WHERE g.event_id = ? AND s.sync_enabled AND NOT g.initial_complete AND (g.connection_mode='script' OR (g.phase='initial' AND g.failure_count=0)) AND (s.closes_at IS NULL OR s.closes_at > now()) LIMIT 1", [$this->event->id]);
     }
 
     public function reset(int $id, array $cursor): void

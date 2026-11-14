@@ -44,7 +44,8 @@ if (nativePHP.status === 0 && nativeDatabaseConfigured) {
         scriptPath: '/app/public/index.php',
         relativeUri: request.url,
         method: request.method,
-        env: process.env.APP_ENCRYPTION_KEY ? { APP_ENCRYPTION_KEY: process.env.APP_ENCRYPTION_KEY } : {},
+        env: Object.fromEntries(['APP_ENCRYPTION_KEY','GOOGLE_READER_EMAIL','GOOGLE_READER_AUDIENCE','VERCEL_OIDC_TOKEN']
+          .filter(key=>process.env[key]).map(key=>[key,process.env[key]])),
         headers: { ...request.headers, host: request.headers.host || `${host}:${port}` },
         body: ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method) ? await readBody(request) : undefined,
       });

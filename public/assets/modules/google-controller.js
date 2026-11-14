@@ -10,7 +10,7 @@ export class GoogleController {
     this.host = document.querySelector('#google-source-list'); this.nodes = new Map(); this.busy = new Set();
     this.store = new GoogleSync(); this.dialog = new GoogleDialog(this.store,text => this.feedback(text)); this.dialog.start(); this.issues = new GoogleIssues(this.store); this.issues.start();
     this.store.addEventListener('change',() => this.render()); this.store.addEventListener('error',({ detail }) => this.feedback(detail));
-    document.querySelector('#participants-google-sheets').addEventListener('click',() => { this.dialog.open(); this.store.load().catch(error => this.feedback(error.message)); });
+    document.querySelector('#participants-google-sheets').addEventListener('click',() => this.dialog.open(this.store.values()[0]||null));
     document.addEventListener('operator-tab',({ detail }) => { if (detail === 'participants' && Date.now() - this.store.lastLoad > 15000) this.store.load().then(() => this.store.wake()).catch(error => this.feedback(error.message)); });
     document.querySelector('#google-schedule-close').addEventListener('click',() => { if (!this.scheduleBusy) document.querySelector('#google-schedule-dialog').close(); });
     document.querySelector('#google-schedule-dialog').addEventListener('cancel',event => { if (this.scheduleBusy) event.preventDefault(); });
@@ -20,6 +20,7 @@ export class GoogleController {
   feedback(text) { const host = document.querySelector('#management-feedback'); host.textContent = text; host.hidden = !text; }
   render() {
     const sources = this.store.values(); this.host.hidden = !sources.length;
+    for (const [id,node] of this.nodes) if (!sources.some(source=>Number(source.id)===id)) { node.remove();this.nodes.delete(id); }
     for (const source of sources) {
       const id = Number(source.id); let node = this.nodes.get(id);
       if (!node) {
@@ -49,8 +50,7 @@ export class GoogleController {
     this.busy.add(id); this.render();
     try {
       if (action === 'edit') {
-        if (['initial','live'].includes(source.phase)) source = await apiRequest('/api/google-sources',{ action: 'pause',id,version: Number(source.version) });
-        this.store.update(source); this.store.changed(false,true); await this.dialog.open(source);
+        await this.dialog.open(source);
       } else {
         source = await apiRequest('/api/google-sources',{ action: action === 'disconnect' ? 'disconnect' : ['initial','live'].includes(source.phase) ? 'pause' : 'resume',id,version: Number(source.version) });
         this.store.update(source); this.store.changed(false,true); this.store.wake();

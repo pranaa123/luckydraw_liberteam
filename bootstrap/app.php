@@ -18,6 +18,7 @@ spl_autoload_register(static function (string $class): void {
 });
 
 Environment::load(BASE_PATH . '/.env');
+if (Environment::get('APP_ENV','local')==='local') Environment::load(BASE_PATH . '/.env.google.local');
 $config = require BASE_PATH . '/config/app.php';
 date_default_timezone_set($config['timezone']);
 

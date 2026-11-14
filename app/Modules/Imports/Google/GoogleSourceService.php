@@ -13,14 +13,17 @@ use App\Modules\Participants\ParticipantFilter;
 
 final class GoogleSourceService
 {
-    public const ACTIONS = ['prepare','setup','probe','configure','schedule','disconnect','pause','resume','sync','issues','resolve'];
+    public const ACTIONS = ['inspect','connect','prepare','setup','probe','configure','schedule','disconnect','pause','resume','sync','issues','resolve'];
     private readonly GoogleSourceRepository $records;
     private readonly GoogleSyncService $sync;
     public function __construct(private readonly EventContext $event) { $this->records = new GoogleSourceRepository($event); $this->sync = new GoogleSyncService($event); }
-    public function list(): array { return ['items' => $this->records->list(),'data_version' => $this->records->dataVersion()]; }
+    public function list(): array { return ['items' => $this->records->list(),'data_version' => $this->records->dataVersion(),
+      'reader' => ['ready'=>Reader\ReaderAccess::ready(),'email'=>Reader\ReaderAccess::email()]]; }
 
     public function save(string $action,array $input): array
     {
+        if ($action === 'inspect') return (new Reader\ReaderConnection($this->event))->inspect($input);
+        if ($action === 'connect') return (new Reader\ReaderConnection($this->event))->connect($input,$this->deadline($input));
         if ($action === 'prepare') return $this->prepare($input);
         $id = Input::integer($input,'id');
         if ($action === 'sync') return $this->sync->work($id);
@@ -42,6 +45,8 @@ final class GoogleSourceService
             $source = GoogleProtocol::decode($this->records->find($id,true));
             if ((int) $source['version'] !== ($input['version'] ?? null)) throw new ApiError('Sumber sudah berubah. Buka ulang pengaturan koneksi.',409);
             if ($action === 'configure') {
+                $current = (new Reader\ReaderRepository($this->event))->current();
+                if ($current && (int)$current['id']!==$id) throw new ApiError('Acara ini sudah memiliki satu koneksi. Gunakan Ganti spreadsheet.',409);
                 $fields = (new FieldRepository($this->event))->all();
                 if (($input['field_schema'] ?? null) !== ParticipantFilter::schema($fields)) throw new ApiError('Isian undian berubah. Buka ulang pemetaan kolom.',409);
                 if (!$source['metadata'] || ($input['header_hash'] ?? null) !== ($source['metadata']['header_hash'] ?? null)) throw new ApiError('Periksa konektor dan pemetaan terlebih dahulu.',409);
@@ -50,6 +55,8 @@ final class GoogleSourceService
             } elseif ($action === 'disconnect') $this->records->close($id,true);
             elseif ($action === 'pause') $this->records->pause($id);
             elseif ($action === 'resume') {
+                $current = (new Reader\ReaderRepository($this->event))->current();
+                if ($current && (int)$current['id']!==$id) throw new ApiError('Koneksi sudah diganti. Gunakan koneksi terbaru.',409);
                 if ($source['deadline_passed']) throw new ApiError('Ubah waktu penutupan sebelum melanjutkan sinkronisasi.',409);
                 if (!$source['column_mapping'] || $source['field_schema'] !== ParticipantFilter::schema((new FieldRepository($this->event))->all())) throw new ApiError('Petakan ulang kolom sebelum melanjutkan.',409);
                 $this->records->resume($id);
@@ -89,6 +96,9 @@ final class GoogleSourceService
     private function setup(int $id): array
     {
         $source = $this->records->find($id);
+        if ($source['connection_mode']==='reader') return ['source'=>$this->sync->public($id),
+          'mapping'=>\App\Modules\Participants\DuplicatePolicy::decode($source['column_mapping']),
+          'field_schema'=>$source['field_schema'],'header_hash'=>$source['header_hash']];
         $config = ['connectorId' => substr(str_replace('-','',$source['connection_id']),0,12),'spreadsheetId' => $source['spreadsheet_id'],'sheetId' => $source['sheet_id'] === null ? null : (int) $source['sheet_id'],'headerRow' => (int) $source['header_row'],'secret' => (new SecretVault())->decrypt($source['encrypted_secret'])];
         $script = str_replace('__DOORPRIZE_CONFIG__',json_encode($config,JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES),file_get_contents(BASE_PATH . '/resources/google-sheets/connector.gs'));
         return ['source' => $this->sync->public($id),'script' => $script,'endpoint' => $source['endpoint'],'mapping' => \App\Modules\Participants\DuplicatePolicy::decode($source['column_mapping']),'field_schema' => $source['field_schema']];
