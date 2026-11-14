@@ -1,0 +1,60 @@
+import assert from 'node:assert/strict';
+import {randomUUID,randomBytes} from 'node:crypto';
+import {writeFile,unlink,access} from 'node:fs/promises';
+import {createPHP,projectRoot} from './php-runtime.mjs';
+import {openLocalDatabase} from './local-database.mjs';
+import {connectAuthenticatedDatabase,fixtureOwner} from './auth-fixture.mjs';
+const database=await openLocalDatabase('memory://'),php=await createPHP();
+const detach=await connectAuthenticatedDatabase(php,database);
+let eventId=1;
+const paths=[];
+const query=(sql,values=[])=>database.query(sql,values);
+async function request(resource,payload,expected=200,scope=eventId){
+  const headers={'content-type':'application/json',origin:'http://127.0.0.1:8091',...(scope===null?{}:{'x-doorprize-event':String(scope)})};
+  const response=await php.run({scriptPath:'/app/public/index.php',relativeUri:'/api/'+resource,method:payload?'POST':'GET',headers,body:payload?Buffer.from(JSON.stringify(payload)):undefined});
+  assert.equal(response.httpStatusCode,expected,response.text+'\n'+response.errors);
+  return JSON.parse(response.text);
+}
+const exists=async path=>access(projectRoot+'/public'+path).then(()=>true,()=>false);
+try{
+  const second='00000000-0000-4000-8000-000000000002';
+  await query("INSERT INTO doorprize.events(owner_id,client_name,event_name,visual_settings,duplicate_keys,winner_count,prize_mode) VALUES($1,'Client lama','Acara lama','{\"font_color\":\"#ff0000\",\"canvas_width\":2400}','[\"name\"]',10,'random'),($2,'Client lain','Acara lain','{}','[]',1,'none')",[fixtureOwner,second]);
+  await database.exec("INSERT INTO doorprize.event_fields(event_id,slot,label) VALUES(1,1,'Divisi'); INSERT INTO doorprize.import_sources(event_id,type) VALUES(1,'excel'),(1,'google_sheets'); INSERT INTO doorprize.participants(event_id,name,field_1,source_id) SELECT 1,'Peserta '||n,'Tim '||n%5,1 FROM generate_series(1,50000) n; INSERT INTO doorprize.participants(event_id,name) VALUES(2,'Peserta acara lain'); UPDATE doorprize.participants SET status='winner' WHERE id=1; UPDATE doorprize.participants SET status='duplicate',duplicate_of_id=1 WHERE id=2; UPDATE doorprize.participants SET status='eliminated' WHERE id=3; INSERT INTO doorprize.prizes(event_id,name,initial_quantity,remaining_quantity,sort_order) VALUES(1,'Hadiah lama',5,4,1),(2,'Hadiah lain',3,3,1);");
+  await query("INSERT INTO doorprize.draws(event_id,sequence_number,status,phase,prize_mode,requested_count,idempotency_key,resolved_at) VALUES(1,1,'confirmed','result','random',1,$1,now()),(1,2,'pending','rolling','none',1,$2,NULL)",[randomUUID(),randomUUID()]);
+  await database.exec("INSERT INTO doorprize.draw_entries(event_id,draw_id,participant_id,prize_id,position,participant_snapshot) VALUES(1,1,1,1,1,'{\"name\":\"Pemenang lama\"}'); UPDATE doorprize.events SET display_draw_id=2,filter_pool_active=true,draw_filters='{\"field_1\":{\"mode\":\"include\",\"values\":[\"Tim 1\"]}}' WHERE id=1; INSERT INTO doorprize.draw_filter_pool(event_id,participant_id,position) SELECT 1,id,row_number() OVER(ORDER BY id) FROM doorprize.participants WHERE event_id=1 AND status='available' AND field_1='Tim 1';");
+  const batch=randomUUID();
+  await query("INSERT INTO doorprize.import_batches(id,event_id,filename,sheet_name,field_schema,mapping,duplicate_keys,request_hash,expected_rows) VALUES($1,1,'Lama.xlsx','Peserta','','{\"name\":1}','[\"name\"]','fixture',1)",[batch]);
+  await query("INSERT INTO doorprize.import_rows(batch_id,row_number,name) VALUES($1,1,'Staging lama')",[batch]);
+  await query("INSERT INTO doorprize.import_chunks(batch_id,chunk_number,content_hash) VALUES($1,0,'fixture')",[batch]);
+  await query("INSERT INTO doorprize.google_sources(source_id,event_id,connection_id,endpoint,phase,lease_id,lease_until) VALUES(2,1,$1,'https://script.google.com/macros/s/fixture/exec','live',$2,now()+interval '1 minute')",[randomUUID(),randomUUID()]);
+  await query("INSERT INTO doorprize.google_rows(source_id,event_id,row_key,row_number,participant_id,source_data,source_hash) VALUES(2,1,$1,2,4,'{}','fixture')",[randomUUID()]);
+  await query("INSERT INTO doorprize.audit_log(event_id,actor_id,action,entity_type) VALUES(1,$1,'update','participant')",[fixtureOwner]);
+  const own='/assets/backgrounds/'+randomBytes(16).toString('hex')+'.png',foreign='/assets/backgrounds/'+randomBytes(16).toString('hex')+'.png';
+  for(const path of [own,foreign]){paths.push(path);await writeFile(projectRoot+'/public'+path,Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aJ1kAAAAASUVORK5CYII=','base64'));}
+  await query('INSERT INTO doorprize.background_assets(event_id,path) VALUES(1,$1),(2,$2)',[own,foreign]);
+  const sessions=(await query('SELECT count(*)::int AS count FROM doorprize_auth.sessions')).rows[0].count;
+  let snapshot=await request('event-reset');assert.equal(snapshot.participants,50000);assert.equal(snapshot.winners,1);
+  const reset={action:'reset',...snapshot,confirmation:'RESET'};
+  await request('event-reset',{...reset,confirmation:'reset'},422);
+  await request('event-reset',{...reset,event_id:2},409);
+  await request('event-reset',{...reset,version:snapshot.version+1},409);
+  await database.exec("CREATE FUNCTION doorprize.qa_reset_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.reset_generation>0 THEN RAISE EXCEPTION 'QA rollback'; END IF; RETURN NEW; END $$; CREATE TRIGGER qa_reset_failure BEFORE INSERT ON doorprize.events FOR EACH ROW EXECUTE FUNCTION doorprize.qa_reset_failure();");
+  await request('event-reset',reset,503);
+  assert.equal((await request('event-reset')).participants,50000,'Reset gagal harus rollback seluruh penghapusan');assert.equal((await query('SELECT count(*)::int AS count FROM doorprize.google_sources')).rows[0].count,1);assert.equal((await query('SELECT count(*)::int AS count FROM doorprize.import_rows')).rows[0].count,1);
+  await database.exec('DROP TRIGGER qa_reset_failure ON doorprize.events; DROP FUNCTION doorprize.qa_reset_failure();');
+  const begin=performance.now();const result=await request('event-reset',reset);const milliseconds=Math.round(performance.now()-begin);assert.equal(result.reset,true);assert.notEqual(result.event_id,1);eventId=result.event_id;
+  const old=await request('participants',undefined,409,1);assert.equal(old.reason,'event_changed');await request('prizes',{action:'create',name:'Tab lama',quantity:1},409,null);
+  const settings=await request('settings');assert.equal(settings.client_name,'');assert.equal(settings.event_name,'');assert.equal(settings.event_at,null);assert.equal(settings.show_event_info,false);assert.equal(settings.visual.canvas_width,1920);assert.equal(settings.visual.background_image,null);assert.equal(settings.visual.font_color,'#172b4d');
+  const state=await request('draws');assert.equal(state.available_count,0);assert.equal(state.draw,null);assert.equal(state.config.winner_count,1);assert.deepEqual(state.fields,[]);
+  for(const table of ['event_fields','import_sources','participants','prizes','draws','draw_entries','audit_log','participant_pool','draw_filter_pool','import_batches','google_sources','google_rows','background_assets'])assert.equal((await query(`SELECT count(*)::int AS count FROM doorprize.${table} WHERE event_id=1`)).rows[0].count,0,table);
+  for(const table of ['import_rows','import_chunks'])assert.equal((await query('SELECT count(*)::int AS count FROM doorprize.'+table)).rows[0].count,0,table);
+  assert.equal((await query('SELECT count(*)::int AS count FROM doorprize_auth.sessions')).rows[0].count,sessions,'Sesi tetap diingat');assert.equal((await query("SELECT count(*)::int AS count FROM doorprize.participants WHERE event_id=2 AND name='Peserta acara lain'")).rows[0].count,1);
+  assert.equal((await request('event-reset',{action:'cleanup'})).more,false);assert.equal(await exists(own),false);assert.equal(await exists(foreign),true);assert.equal((await request('event-reset',{action:'cleanup'})).more,false,'Cleanup idempoten');
+  await request('participants',{action:'create',name:'Peserta baru',status:'available',field_schema:''});assert.equal((await request('draws')).available_count,1);
+  await query("INSERT INTO doorprize.participants(event_id,name) SELECT $1,'Peserta baru '||n FROM generate_series(1,999) n",[eventId]);
+  const ready=await request('draws');const firstRound=await request('draws',{action:'start',version:ready.version,request_id:randomUUID(),winner_count:1,prize_mode:'none',allocation:[]});assert.equal(firstRound.draw.sequence_number,1,'Urutan undian acara baru dimulai dari 1');
+  await request('imports',{action:'commit',batch_id:batch,preview_revision:1},404);
+  snapshot=await request('event-reset');const normalStart=performance.now();const next=await request('event-reset',{action:'reset',...snapshot,confirmation:'RESET'});const normalMs=Math.round(performance.now()-normalStart);eventId=next.event_id;assert.equal((await request('event-reset')).participants,0);
+  assert.ok(normalMs<1000,'Target reset 1.000 peserta <1 detik: '+normalMs+' ms');
+  console.log(`Reset acara: 1.000 peserta ${normalMs} ms, stress 50.000 peserta ${milliseconds} ms; konfirmasi, versi, rollback, FK/staging/Sheets, default, akun/sesi, isolasi pemilik, scope tab lama, cleanup gambar dan pemakaian ulang lulus.`);
+}finally{for(const path of paths)await unlink(projectRoot+'/public'+path).catch(()=>{});detach();php.exit();await database.close();}

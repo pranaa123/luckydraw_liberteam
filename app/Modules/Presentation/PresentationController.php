@@ -16,10 +16,12 @@ final class PresentationController
     {
         $session = (new \App\Modules\Auth\AuthService($this->config))->session();
         if (!$session) { header('Location: /login', true, 303); return; }
+        $event = new \App\Modules\Events\EventContext(new \App\Core\Database($this->config['database'],$session->userId),$session->userId);
         View::render('presentation', [
             'appName' => $this->config['name'],
             'isPreview' => ($_GET['preview'] ?? '') === '1',
             'session' => $session,
+            'event' => $event,
         ]);
     }
 }

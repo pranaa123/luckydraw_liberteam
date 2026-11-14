@@ -17,11 +17,13 @@ final class OperatorController
     {
         $session = (new \App\Modules\Auth\AuthService($this->config))->session();
         if (!$session) { header('Location: /login', true, 303); return; }
+        $event = new \App\Modules\Events\EventContext(new \App\Core\Database($this->config['database'],$session->userId),$session->userId);
         // Shell tidak mengambil data peserta, hadiah, atau riwayat.
         View::render('operator', [
             'appName' => $this->config['name'],
             'statuses' => ParticipantStatus::cases(),
             'session' => $session,
+            'event' => $event,
         ]);
     }
 }

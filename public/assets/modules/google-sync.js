@@ -1,4 +1,4 @@
-import { scopedName } from './auth-context.js';
+import { eventScopedName } from './auth-context.js';
 import { apiRequest } from './api-client.js';
 import { drawState } from './draw-state.js';
 
@@ -6,9 +6,10 @@ import { drawState } from './draw-state.js';
 export class GoogleSync extends EventTarget {
   constructor() {
     super(); this.sources = new Map(); this.lastLoad = 0;
-    this.channel = typeof BroadcastChannel === 'function' ? new BroadcastChannel(scopedName('doorprize-baru-google')) : null;
+    this.channel = typeof BroadcastChannel === 'function' ? new BroadcastChannel(eventScopedName('doorprize-baru-google')) : null;
     this.channel?.addEventListener('message', ({ data }) => { if (data?.source) { this.update(data.source,false); this.wake(); } });
     window.addEventListener('pagehide', () => { this.stopped = true; clearTimeout(this.timer); this.channel?.close(); }, { once: true });
+    document.addEventListener('event-changing', () => { this.stopped = true; clearTimeout(this.timer); });
     document.addEventListener('draw-records-changed', () => { this.dispatchEvent(new Event('change')); this.wake(); });
   }
   async start() { try { await this.load(); } catch (error) { this.dispatchEvent(new CustomEvent('error',{ detail: error.message })); } this.wake(); }
@@ -48,7 +49,7 @@ export class GoogleSync extends EventTarget {
           if (result.more) delay = Math.min(delay,60); else if (result.pending) delay = Math.min(delay,600);
         }
       };
-      if (navigator.locks) await navigator.locks.request(scopedName('doorprize-baru-google-sync'),{ ifAvailable: true },lock => lock ? run() : undefined);
+      if (navigator.locks) await navigator.locks.request(eventScopedName('doorprize-baru-google-sync'),{ ifAvailable: true },lock => lock ? run() : undefined);
       else await run();
     } catch (error) { this.dispatchEvent(new CustomEvent('error',{ detail: error.message })); delay = 5000; }
     finally {

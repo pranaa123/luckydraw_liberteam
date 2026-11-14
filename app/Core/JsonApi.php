@@ -49,7 +49,7 @@ final class JsonApi
             echo json_encode($operation(), JSON_THROW_ON_ERROR);
         } catch (ApiError $error) {
             http_response_code($error->status);
-            echo json_encode(['error' => $error->getMessage()], JSON_THROW_ON_ERROR);
+            echo json_encode(['error' => $error->getMessage(), ...($error->reason ? ['reason'=>$error->reason] : [])], JSON_THROW_ON_ERROR);
         } catch (\JsonException $error) {
             http_response_code(422);
             echo json_encode(['error' => 'Format JSON tidak valid.']);

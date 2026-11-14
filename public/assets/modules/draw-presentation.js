@@ -23,6 +23,7 @@ export class DrawPresentation {
   }
 
   accept(state) {
+    if (document.body.dataset.eventDisplayOnly === 'true') return;
     const resultKey = state.draw?.phase === 'result' ? state.draw.id : null;
     if (resultKey !== this.resultKey) {
       this.revealPending = Boolean(resultKey && this.hasState);

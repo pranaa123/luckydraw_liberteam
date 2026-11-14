@@ -391,4 +391,6 @@
   .winner-details dt { font-size: 10px; color: #64748b; max-width: 45%; flex-shrink: 0; }
   .winner-details dd { min-width: 0; }
   .winner-empty { text-align: center; color: #64748b; padding: 28px 12px !important; }
+  .is-reset-output > .presentation-canvas { display: none; }
+  .event-reset-output-frame { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
 }

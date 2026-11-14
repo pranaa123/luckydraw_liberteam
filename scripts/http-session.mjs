@@ -9,8 +9,9 @@ export async function httpSession(origin,credentials) {
   const html = await page.text();
   const scope = html.match(/name="auth-scope" content="([^"]+)"/)?.[1];
   const csrf = html.match(/name="csrf-token" content="([^"]+)"/)?.[1];
+  const eventScope = html.match(/name="event-scope" content="([^"]+)"/)?.[1];
   if (!scope || !csrf) throw Error('Sesi operator belum tersedia.');
-  const headers = {cookie,'x-doorprize-session':scope,'x-csrf-token':csrf};
+  const headers = {cookie,'x-doorprize-session':scope,'x-csrf-token':csrf,...(eventScope ? {'x-doorprize-event':eventScope} : {})};
   return {
     cookie,scope,csrf,
     fetch:(url,options={})=>fetch(url,{...options,headers:{...headers,...options.headers}}),

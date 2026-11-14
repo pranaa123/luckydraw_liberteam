@@ -184,3 +184,9 @@ Status operator kini berada dekat kontrol: biru saat berjalan, kuning saat menun
 Repository aplikasi baru dipisahkan dari Git aplikasi lama. Pemeriksaan staged files mengecualikan seluruh data lokal, identitas login, kredensial, kunci, konfigurasi rahasia, cache/log dan upload; fixture yang ikut source menggunakan data fiktif. Commit memakai email GitHub noreply.
 
 Build dan seluruh `npm run check` lulus. Pada 50.000+ peserta/100 hasil: Mulai 9 ms, Stop 413 ms, Sahkan 26 ms; filter pertama 186 ms, penggunaan ulang 14 ms, Stop terfilter 113 ms. Seluruh operasi kontrol yang diukur memenuhi assertion <1.000 ms. Import 1.000 baris: staging/pratinjau 196 ms termasuk retry pengujian, commit 421 ms. Ini angka lokal, bukan hasil pengukuran hosting atau Google Sheets nyata.
+
+## Reset acara
+
+Tersedia pada Persiapan → Acara baru. Dialog ringkas memuat jumlah peserta/hadiah/pemenang, ketik RESET, dan penegasan penghapusan permanen. Data dan pengaturan baru benar-benar kosong; akun/sesi tetap, urutan undian kembali 1, tab lama ditolak dan layar output kembali standby dengan fullscreen dipertahankan. Sumber Sheets/import lama dihapus agar tidak mengisi kembali acara baru.
+
+Uji mencakup confirmed + rolling, FK/staging/duplikasi, rollback penuh saat pembuatan acara baru gagal, isolasi pemilik, konfirmasi/versi, scope tab lama, pembersihan background, sesi tetap dan reset berulang. Lokal 1.000 peserta sekitar 43–46 ms; stress penghapusan 50.000 peserta sekitar 1,8–1,9 detik. Cloud dengan akun QA: reset 1.000 peserta dan dua request bersamaan 403 ms (satu berhasil, satu 409), cookie tetap, Storage dibersihkan dan sequence baru 1. Batas <1000 ms pada undian/filter tetap dipertahankan. Browser menguji Batal, tab/preview, kedua jalur fullscreen dan dialog 375 px. Advisor Supabase tanpa peringatan setelah migrasi.

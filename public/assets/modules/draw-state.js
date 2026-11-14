@@ -1,4 +1,4 @@
-import { scopedName } from './auth-context.js';
+import { eventScopedName } from './auth-context.js';
 import { apiRequest } from './api-client.js';
 
 class DrawState extends EventTarget {
@@ -7,7 +7,7 @@ class DrawState extends EventTarget {
     this.state = null;
     this.pending = null;
     if (typeof BroadcastChannel !== 'function') return;
-    this.channel = new BroadcastChannel(scopedName('doorprize-baru-draws'));
+    this.channel = new BroadcastChannel(eventScopedName('doorprize-baru-draws'));
     this.channel.addEventListener('message', ({ data }) => {
       if (data?.type === 'request' && this.state) this.channel.postMessage({ type: 'state', state: this.state });
       if (data?.type === 'state') this.accept(data.state);

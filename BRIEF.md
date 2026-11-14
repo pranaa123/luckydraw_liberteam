@@ -219,3 +219,7 @@ Dokumen ini menyimpan kebutuhan pengguna dan klarifikasi yang telah disepakati d
 - Jumlah nama berada di kanan seluruh grup Mulai/Sahkan/Eliminasi/Kosongkan, beserta ringkasan peserta tersedia. Pada ruang sempit, jumlah bergeser ke bawah kanan agar tiga tombol tetap sebaris.
 - Nama client dan nama acara bersebelahan pada formulir Persiapan; pengguna mengonfirmasi perubahan ini untuk formulir, bukan visual output.
 - Hilangkan penanda Pengembangan lokal dari area kerja.
+
+## Reset untuk acara baru — 14 November 2026
+
+Pengguna meminta reset agar aplikasi dapat digunakan benar-benar dari nol untuk acara baru. Reset mengosongkan peserta, hadiah, pemenang/hasil dan riwayat, isian tambahan, aturan duplikasi/filter, informasi acara, background dan pengaturan visual. Koneksi Google Sheets diputus tanpa menghapus data spreadsheet eksternal. Akun dan sesi login dipertahankan. Tombol diletakkan pada Persiapan, dengan ringkasan dan ketik RESET sebelum konfirmasi. Penerapan fitur tidak mereset data pengguna; tindakan dijalankan hanya ketika operator mengonfirmasinya.

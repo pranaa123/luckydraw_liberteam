@@ -14,7 +14,7 @@ final class DrawRepository
 
     public function lock(): array
     {
-        return $this->event->database->query('SELECT id, draw_version, draw_filters FROM doorprize.events WHERE id = ? FOR UPDATE', [$this->event->id])[0];
+        return $this->event->database->query('SELECT id, draw_version, draw_filters FROM doorprize.events WHERE id = ? FOR UPDATE', [$this->event->id])[0] ?? throw EventContext::changed();
     }
 
     public function capacity(array $filters = []): int

@@ -113,6 +113,7 @@ $tabs = ['draw' => ['Undian', 'spark'], 'participants' => ['Peserta', 'users'], 
                 <?php require __DIR__ . '/partials/settings-form.php'; ?>
                 <div class="card"><h3>Isian undian</h3><div class="field-summary"><span>Nama</span><span class="quiet-badge">Wajib</span></div><div id="field-list" class="record-list"></div><button type="button" class="button button-quiet mt-3" data-open-editor="field"><?= $icon('plus') ?>Tambah isian</button><p class="field-hint mt-2">Maksimal 3 isian tambahan.</p></div>
                 <div class="card form-stack"><h3>Aturan duplikasi</h3><div id="duplicate-keys" class="duplicate-keys"></div><p class="field-hint">Semua kunci harus terisi dan sama. Huruf besar/kecil diabaikan. Tanpa kunci, pemeriksaan nonaktif.</p><div class="flex flex-wrap gap-2"><button type="button" id="duplicate-reload" class="button button-secondary">Muat ulang</button><button type="button" id="duplicate-save" class="button button-save" disabled>Simpan aturan</button></div><p id="duplicate-message" class="field-hint" role="status"></p></div>
+                <section class="card form-stack"><h3>Acara baru</h3><p class="field-hint">Kosongkan semua data dan kembalikan pengaturan ke awal.</p><div><button type="button" class="button button-secondary button-danger" id="event-reset-open" disabled><?= $icon('delete') ?>Reset acara</button></div></section>
             </div>
 
             <div role="tabpanel" id="panel-history" aria-labelledby="tab-history" data-panel="history" tabindex="0" hidden>
@@ -123,6 +124,7 @@ $tabs = ['draw' => ['Undian', 'spark'], 'participants' => ['Peserta', 'users'], 
     </main>
     <?php require __DIR__ . '/partials/import-dialog.php'; ?>
     <?php require __DIR__ . '/partials/google-dialog.php'; ?>
+    <?php require __DIR__ . '/partials/event-reset-dialog.php'; ?>
     <template id="record-actions-template"><div class="record-actions"><button type="button" class="button button-secondary button-icon" data-record-action="edit" aria-label="Edit" title="Edit"><?= $icon('edit') ?></button><button type="button" class="button button-secondary button-icon delete-action" data-record-action="delete" aria-label="Hapus" title="Hapus"><?= $icon('delete') ?></button></div></template>
     <template id="prize-order-template"><div class="prize-order"><button type="button" data-prize-order="up" aria-label="Naikkan hadiah"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button><button type="button" data-prize-order="down" aria-label="Turunkan hadiah"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div></template>
     <dialog id="record-editor" class="record-dialog" aria-labelledby="editor-title">

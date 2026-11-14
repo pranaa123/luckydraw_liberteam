@@ -22,7 +22,8 @@ return [
     '/api/session' => ['GET' => static fn () => JsonApi::run(static function () use ($config): array {
         $session = (new \App\Modules\Auth\AuthService($config))->requireSession();
         $session->assertRequest();
-        return ['id'=>$session->id];
+        $event = new \App\Modules\Events\EventContext(new \App\Core\Database($config['database'],$session->userId),$session->userId);
+        return ['id'=>$session->id,'event_id'=>$event->id];
     })],
     '/api/google-sources' => [
         'GET' => static fn () => JsonApi::respond($config, \App\Modules\Imports\Google\GoogleSourceService::class),
@@ -60,6 +61,10 @@ return [
     '/api/fields' => [
         'GET' => static fn () => JsonApi::respond($config, FieldService::class),
         'POST' => static fn () => JsonApi::respond($config, FieldService::class),
+    ],
+    '/api/event-reset' => [
+        'GET' => static fn () => JsonApi::respond($config, \App\Modules\Events\EventResetService::class),
+        'POST' => static fn () => JsonApi::respond($config, \App\Modules\Events\EventResetService::class),
     ],
     '/api/settings' => [
         'GET' => static fn () => JsonApi::respond($config, SettingsService::class),

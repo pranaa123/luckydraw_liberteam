@@ -8,6 +8,7 @@ import { DrawController } from './modules/draw-controller.js';
 import { HistoryController } from './modules/history-controller.js';
 import { HistoryNavigation } from './modules/history-navigation.js';
 import { WinnerController } from './modules/winner-controller.js';
+import { EventResetController } from './modules/event-reset-controller.js';
 
 const tabs = [...document.querySelectorAll('[data-tab]')];
 const panels = [...document.querySelectorAll('[data-panel]')];
@@ -43,6 +44,7 @@ activateTab(location.hash.slice(1), false);
 window.addEventListener('hashchange', () => activateTab(location.hash.slice(1), false));
 
 new AuthController().start();
+new EventResetController().start();
 new OutputController(window, document).start();
 new ManagementController().start();
 new SettingsController().start();

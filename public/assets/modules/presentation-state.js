@@ -1,4 +1,4 @@
-import { scopedName } from './auth-context.js';
+import { eventScopedName } from './auth-context.js';
 import { apiRequest } from './api-client.js';
 
 /** Kanal konfigurasi kecil. Tidak membawa daftar peserta, file gambar, atau menjalankan polling. */
@@ -9,7 +9,7 @@ class PresentationState extends EventTarget {
     this.pending = null;
     this.sender = crypto.randomUUID();
     if (typeof BroadcastChannel === 'function') {
-      this.channel = new BroadcastChannel(scopedName('doorprize-baru-visual-settings'));
+      this.channel = new BroadcastChannel(eventScopedName('doorprize-baru-visual-settings'));
       this.channel.addEventListener('message', ({ data }) => {
         if (data?.type === 'request' && this.packet) this.channel.postMessage({ type: 'state', packet: this.packet });
         if (data?.type === 'state') this.accept(data.packet);

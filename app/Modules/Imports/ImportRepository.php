@@ -13,7 +13,7 @@ final class ImportRepository
 
     public function lockEvent(): void
     {
-        $this->event->database->query('SELECT id FROM doorprize.events WHERE id = ? FOR UPDATE', [$this->event->id]);
+        $this->event->lock();
     }
 
     public function eventInfo(): array

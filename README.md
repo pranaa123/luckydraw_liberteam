@@ -199,3 +199,9 @@ Jalankan Git dari direktori `doorprize-baru`; direktori ini mempunyai repository
 Yang dilacak adalah kode, migrasi, konfigurasi contoh kosong, dependency lockfile dan asset runtime/library beserta lisensinya. `.gitignore` mengecualikan seluruh storage/database/sesi/kunci, konfigurasi `.env*` selain `.env.example`, upload background, cache, log, dependensi terpasang dan konfigurasi hosting lokal. Kredensial pada fixture pengujian adalah contoh fiktif dan bukan akun aplikasi. Periksa staged diff dan kemungkinan kredensial sebelum setiap commit/push.
 
 `npm run check` mempertahankan assertion kurang dari 1.000 ms pada Mulai/Stop/Sahkan dan operasi filter yang diuji. Angka ini mengukur runtime lokal; hosting dan jaringan diuji tersendiri. Git tidak menambah proses pada jalur undian.
+
+## Reset acara
+
+Buka **Persiapan → Acara baru → Reset acara**. Ringkasan menampilkan jumlah peserta, jenis hadiah dan pemenang. Ketik **RESET**, lalu konfirmasi untuk menghapus peserta, hadiah, hasil/riwayat, isian tambahan, aturan/filter, informasi acara, background dan seluruh pengaturan visual. Koneksi Google Sheets diputus; isi spreadsheet di luar aplikasi tidak dihapus. Akun dan sesi login tetap diingat. Reset tidak berjalan otomatis ketika aplikasi diperbarui.
+
+Acara baru dimulai kosong dengan default canvas/font, jumlah nama 1, tanpa hadiah/filter, serta urutan undian mulai 1. Tab/preview menyesuaikan; output yang sudah fullscreen tetap fullscreen dan kembali standby. Tindakan ini tidak dapat dibatalkan. Pemeriksaan: `npm run check:event-reset` dan `npm run check:event-reset:browser` dengan server QA terpisah pada port 8098/8099.

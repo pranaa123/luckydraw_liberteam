@@ -25,6 +25,7 @@ export class PresentationView {
   start() {
     this.animation.start();
     this.draw.start();
+    document.addEventListener('event-changing', () => { this.animation.setDraw(null); this.draw.entrance.cancel(); });
     presentationState.addEventListener('change', ({ detail }) => this.render(detail.state));
     presentationState.load().then(packet => this.render(packet.state)).catch(() => {
       // Pertahankan visual standby ketika penyimpanan belum dapat dibaca.
@@ -68,6 +69,7 @@ export class PresentationView {
   }
 
   render(state) {
+    if (document.body.dataset.eventDisplayOnly === 'true') return;
     this.state = state;
     const v = resolveNameArea(state.visual);
     const width = Number(v.canvas_width), height = Number(v.canvas_height);

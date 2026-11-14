@@ -17,6 +17,7 @@ export async function apiRequest(path, payload) {
     throw error;
   }
   if (!response.ok) {
+    if (data.reason === 'event_changed') changeEvent();
     const error = new Error(data.error || 'Permintaan belum berhasil. Coba lagi.');
     error.status = response.status;
     throw error;
@@ -24,3 +25,4 @@ export async function apiRequest(path, payload) {
   return data;
 }
 import { authHeaders,expireSession } from './auth-context.js';
+import { changeEvent } from './event-lifecycle.js';

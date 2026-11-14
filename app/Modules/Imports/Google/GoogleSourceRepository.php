@@ -15,7 +15,7 @@ final class GoogleSourceRepository
       (s.closes_at IS NOT NULL AND s.closes_at <= now()) AS deadline_passed, (g.lease_until > now()) AS leased, (g.next_attempt_at <= now()) AS due';
 
     public function __construct(private readonly EventContext $event) {}
-    public function lockEvent(): void { $this->event->database->query('SELECT id FROM doorprize.events WHERE id = ? FOR UPDATE', [$this->event->id]); }
+    public function lockEvent(): void { $this->event->lock(); }
 
     public function find(int $id, bool $lock = false): array
     {

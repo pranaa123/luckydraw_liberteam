@@ -44,6 +44,21 @@ final class BackgroundStorage
         return $this->request('GET', '/object/authenticated/' . $this->object($eventId, $path), null, true);
     }
 
+    public function remove(array $batch): void
+    {
+        $paths = [];
+        foreach ($batch as $asset) {
+            if ((int) ($asset['event_id'] ?? 0)<1 || !is_string($asset['path'] ?? null)
+                || !preg_match('~^/assets/backgrounds/[a-f0-9]{32}\.(png|jpg|webp)$~D',$asset['path'])) throw new \RuntimeException('Antrean gambar tidak valid.');
+            if (self::cloud()) $paths[] = (int) $asset['event_id'] . '/' . basename($asset['path']);
+            else {
+                $file = BASE_PATH . '/public' . $asset['path'];
+                if (is_file($file) && !unlink($file)) throw new \RuntimeException('Gambar lama belum dapat dihapus.');
+            }
+        }
+        if ($paths) $this->request('DELETE','/object/' . rawurlencode(Environment::get('SUPABASE_BACKGROUND_BUCKET','doorprize-backgrounds')),['prefixes'=>$paths]);
+    }
+
     private function signed(string $path, string $prefix): string
     {
         if (!str_starts_with($path, $prefix) || !str_contains($path, '?token=') || preg_match('/[\r\n]/', $path)) throw new \RuntimeException('Respons Storage tidak valid.');
