@@ -1,18 +1,18 @@
 import { element } from './ui.js';
 
-const keys = [1,2,3].map(slot => `show_field_${slot}`);
 
 /** Switch visual saja; skema/isian peserta tetap milik ManagementController. */
 export class FieldVisibilityControls {
   constructor(changed) {
     this.changed = changed; this.root = document.querySelector('#field-list');
-    this.values = Object.fromEntries(keys.map(key => [key,true])); this.disabled = true;
+    this.keys = Array.from({length:Number(this.root.dataset.maxFields)},(_,index)=>`show_field_${index+1}`);
+    this.values = Object.fromEntries(this.keys.map(key => [key,true])); this.disabled = true;
   }
   start() {
     document.addEventListener('field-list-rendered',({ detail }) => this.render(detail));
     this.root.addEventListener('change',({ target }) => {
       const key = target.dataset.fieldVisibility;
-      if (!keys.includes(key) || this.disabled) return;
+      if (!this.keys.includes(key) || this.disabled) return;
       this.values[key] = target.checked; this.changed();
     });
   }
@@ -25,7 +25,7 @@ export class FieldVisibilityControls {
     }
     this.write();
   }
-  fill(visual) { for (const key of keys) this.values[key] = visual[key] !== false; this.write(); }
+  fill(visual) { for (const key of this.keys) this.values[key] = visual[key] !== false; this.write(); }
   read() { return { ...this.values }; }
   setDisabled(disabled) { this.disabled = disabled; this.write(); }
   write() {

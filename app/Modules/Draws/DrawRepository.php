@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Draws;
 
+use App\Modules\Events\FieldSchema;
 use App\Modules\Events\EventContext;
 use App\Modules\Participants\DrawFilterPoolRepository;
 use App\Modules\Participants\ParticipantFilter;
@@ -46,10 +47,11 @@ final class DrawRepository
     public function participants(array $positions, array $filters = []): array
     {
         $table = DrawFilterPoolRepository::table($filters);
+        $columns = FieldSchema::columns('p');
         [$where, $values] = ParticipantFilter::sql($filters);
         return $this->event->database->query("WITH selected AS (
             SELECT value::bigint AS position, ordinality FROM jsonb_array_elements_text(?::jsonb) WITH ORDINALITY
-        ) SELECT p.id, p.name, p.field_1, p.field_2, p.field_3, p.status
+        ) SELECT p.id, {$columns}, p.status
           FROM selected s JOIN doorprize.{$table} pool ON pool.event_id = ? AND pool.position = s.position
           JOIN doorprize.participants p ON p.id = pool.participant_id AND p.event_id = pool.event_id
           WHERE p.status = 'available' {$where} ORDER BY s.ordinality FOR UPDATE OF p", [json_encode($positions, JSON_THROW_ON_ERROR), $this->event->id, ...$values]);
@@ -90,8 +92,9 @@ final class DrawRepository
 
     public function changeParticipants(int $id, string $status): array
     {
-        return $this->event->database->query('UPDATE doorprize.participants SET status = ?, version = version + 1, updated_at = now() WHERE event_id = ? AND id IN
-          (SELECT participant_id FROM doorprize.draw_entries WHERE event_id = ? AND draw_id = ?) RETURNING id, name, field_1, field_2, field_3, status, version', [$status, $this->event->id, $this->event->id, $id]);
+        $columns = FieldSchema::columns();
+        return $this->event->database->query("UPDATE doorprize.participants SET status = ?, version = version + 1, updated_at = now() WHERE event_id = ? AND id IN
+          (SELECT participant_id FROM doorprize.draw_entries WHERE event_id = ? AND draw_id = ?) RETURNING id, {$columns}, status, version", [$status, $this->event->id, $this->event->id, $id]);
     }
 
     public function consumePrizes(int $id): array
@@ -120,7 +123,7 @@ final class DrawRepository
     }
 
     /** Satu snapshot SQL untuk versi, layar, hasil dan jumlah tersedia. */
-    public function state(): array
+    public function state(bool $withAnimation = true): array
     {
         $row = $this->event->database->query("SELECT EXISTS(SELECT 1 FROM doorprize.google_sources gs JOIN doorprize.import_sources src ON src.id = gs.source_id AND src.event_id = gs.event_id WHERE gs.event_id = e.id AND src.sync_enabled AND NOT gs.initial_complete AND (src.closes_at IS NULL OR src.closes_at > now())) AS sync_pending, e.draw_version, e.version AS data_version, e.participants_version, e.winner_count, e.prize_mode, e.draw_allocation, e.draw_filters,
           CASE WHEN e.filter_pool_active THEN COALESCE((SELECT position FROM doorprize.draw_filter_pool WHERE event_id = e.id ORDER BY position DESC LIMIT 1), 0)
@@ -133,13 +136,15 @@ final class DrawRepository
             FROM doorprize.draw_entries WHERE event_id = e.id AND draw_id = d.id), '[]'::jsonb) AS entries
           FROM doorprize.events e LEFT JOIN doorprize.draws d ON d.id = e.display_draw_id AND d.event_id = e.id WHERE e.id = ?", [$this->event->id])[0];
         $decode = static fn ($value): array => is_array($value) ? $value : json_decode($value ?? '[]', true, 512, JSON_THROW_ON_ERROR);
+        $names = $withAnimation && $row['status']==='pending' && $row['phase']==='rolling'
+            ? (new DrawAnimationRepository($this->event))->names((int) $row['animation_seed'],(int) $row['eligible_count'],$decode($row['draw_filters'])) : [];
         return [
             'sync_pending' => (bool) $row['sync_pending'], 'version' => (int) $row['draw_version'], 'data_version' => (int) $row['data_version'], 'participants_version' => (int) $row['participants_version'], 'eligible_count' => (int) $row['eligible_count'], 'available_count' => (int) $row['available_count'], 'fields' => $decode($row['fields']),
             'config' => ['winner_count' => (int) $row['winner_count'], 'prize_mode' => $row['prize_mode'], 'allocation' => $decode($row['draw_allocation']), 'filters' => (object) $decode($row['draw_filters'])],
             'draw' => $row['id'] === null ? null : [
                 'id' => (int) $row['id'], 'sequence_number' => (int) $row['sequence_number'], 'status' => $row['status'], 'phase' => $row['phase'],
                 'prize_mode' => $row['draw_prize_mode'], 'requested_count' => (int) $row['requested_count'], 'seed' => (int) $row['animation_seed'], 'started_at' => (int) $row['started_at'],
-                'sample_names' => $decode($row['sample_names']), 'allocation' => $decode($row['allocation']), 'fields' => $decode($row['field_definitions']), 'entries' => $decode($row['entries']),
+                'sample_names' => $names, 'allocation' => $decode($row['allocation']), 'fields' => $decode($row['field_definitions']), 'entries' => $decode($row['entries']),
             ],
         ];
     }

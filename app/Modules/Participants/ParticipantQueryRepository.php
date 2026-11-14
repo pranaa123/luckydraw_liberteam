@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Participants;
 
+use App\Modules\Events\FieldSchema;
+
 use App\Modules\Events\EventContext;
 
 final class ParticipantQueryRepository
@@ -16,7 +18,8 @@ final class ParticipantQueryRepository
     public function page(array $query, int $after): array
     {
         [$where, $values] = ParticipantQuery::sql($query);
-        return $this->event->database->query("SELECT p.id, p.name, p.field_1, p.field_2, p.field_3, p.status, p.version FROM doorprize.participants p WHERE p.event_id = ? {$where} AND p.id > ? ORDER BY p.id LIMIT 51", [$this->event->id, ...$values, $after]);
+        $columns = FieldSchema::columns('p');
+        return $this->event->database->query("SELECT p.id, {$columns}, p.status, p.version FROM doorprize.participants p WHERE p.event_id = ? {$where} AND p.id > ? ORDER BY p.id LIMIT 51", [$this->event->id, ...$values, $after]);
     }
     public function summary(array $query): array
     {

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Imports;
 
+use App\Modules\Events\FieldSchema;
+
 use App\Core\ApiError;
 use App\Modules\Events\EventContext;
 
@@ -46,14 +48,17 @@ final class ImportRepository
             return ['uploaded_rows' => (int) $batch['uploaded_rows']];
         }
         if ($batch['status'] !== 'draft' || $number !== (int) $batch['next_chunk'] || (int) $batch['uploaded_rows'] + count($rows) > (int) $batch['expected_rows']) throw new ApiError('Urutan pengiriman import berubah. Pilih ulang berkas.', 409);
-        $this->event->database->query('INSERT INTO doorprize.import_rows (batch_id, row_number, name, field_1, field_2, field_3, issue, duplicate_key) SELECT ?::uuid, r.row_number, r.name, NULLIF(r.field_1, \'\'), NULLIF(r.field_2, \'\'), NULLIF(r.field_3, \'\'), r.issue, doorprize.participant_duplicate_key(to_jsonb(r), ?::jsonb) FROM jsonb_to_recordset(?::jsonb) AS r(row_number integer, name text, field_1 text, field_2 text, field_3 text, issue text)', [$id, json_encode($batch['duplicate_keys'], JSON_THROW_ON_ERROR), json_encode($rows, JSON_THROW_ON_ERROR)]);
+        $columns = FieldSchema::columns();
+        $values = implode(', ',array_map(static fn (string $key): string => $key==='name' ? 'r.name' : "NULLIF(r.{$key},'')",FieldSchema::KEYS));
+        $types = implode(', ',array_map(static fn (string $key): string => $key . ' text',FieldSchema::KEYS));
+        $this->event->database->query("INSERT INTO doorprize.import_rows (batch_id,row_number,{$columns},issue,duplicate_key) SELECT ?::uuid,r.row_number,{$values},r.issue,doorprize.participant_duplicate_key(to_jsonb(r),?::jsonb) FROM jsonb_to_recordset(?::jsonb) AS r(row_number integer,{$types},issue text)",[$id,json_encode($batch['duplicate_keys'],JSON_THROW_ON_ERROR),json_encode($rows,JSON_THROW_ON_ERROR)]);
         $this->event->database->query('INSERT INTO doorprize.import_chunks (batch_id, chunk_number, content_hash) VALUES (?::uuid, ?, ?)', [$id, $number, $hash]);
         return $this->event->database->query('UPDATE doorprize.import_batches SET uploaded_rows = uploaded_rows + ?, next_chunk = next_chunk + 1, next_row = ?, updated_at = now() WHERE id = ?::uuid RETURNING uploaded_rows', [count($rows), $rows[array_key_last($rows)]['row_number'], $id])[0];
     }
 
     public function rows(string $id, int $after): array
     {
-        return $this->event->database->query('SELECT row_number, name, field_1, field_2, field_3, issue, preview_status, keeper_name FROM doorprize.import_rows WHERE batch_id = ?::uuid AND row_number > ? ORDER BY row_number LIMIT 51', [$id, $after]);
+        return $this->event->database->query('SELECT row_number, ' . FieldSchema::columns() . ', issue, preview_status, keeper_name FROM doorprize.import_rows WHERE batch_id = ?::uuid AND row_number > ? ORDER BY row_number LIMIT 51', [$id, $after]);
     }
 
     public function previewReady(string $id, array $policy, array $summary): array
@@ -65,10 +70,10 @@ final class ImportRepository
     {
         $source = (int) $this->event->database->query("INSERT INTO doorprize.import_sources (event_id, type, sheet_name, column_mapping) VALUES (?, 'excel', ?, ?::jsonb) RETURNING id", [$this->event->id, $batch['sheet_name'], json_encode($batch['mapping'], JSON_THROW_ON_ERROR)])[0]['id'];
         // Masuk non-eligible dahulu. Rekonsiliasi dalam transaksi yang sama mengaktifkan hanya keeper.
-        $this->event->database->query("INSERT INTO doorprize.participants (event_id, name, field_1, field_2, field_3, status, source_id, source_row_key, source_hash)
-          SELECT ?, name, field_1, field_2, field_3, 'duplicate', ?, row_number::text,
-            encode(sha256(convert_to(jsonb_build_array(name, field_1, field_2, field_3)::text, 'UTF8')), 'hex')
-          FROM doorprize.import_rows WHERE batch_id = ?::uuid AND issue IS NULL ORDER BY row_number", [$this->event->id, $source, $batch['id']]);
+        $columns = FieldSchema::columns();
+        $this->event->database->query("INSERT INTO doorprize.participants (event_id,{$columns},status,source_id,source_row_key,source_hash)
+          SELECT ?,{$columns},'duplicate',?,row_number::text,encode(sha256(convert_to(jsonb_build_array({$columns})::text,'UTF8')),'hex')
+          FROM doorprize.import_rows WHERE batch_id=?::uuid AND issue IS NULL ORDER BY row_number",[$this->event->id,$source,$batch['id']]);
         if ((int) $batch['uploaded_rows'] >= 1000) $this->event->database->query('ANALYZE doorprize.participants (id, event_id, status, duplicate_key, data_quality)');
         return $source;
     }

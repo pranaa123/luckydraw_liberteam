@@ -32,7 +32,9 @@ try {
   const field = await request('fields', { action: 'create', label: 'Instansi' });
   const second = await request('fields', { action: 'create', label: 'Kota' });
   const third = await request('fields', { action: 'create', label: 'Nomor' });
-  await request('fields', { action: 'create', label: 'Keempat' }, 422);
+  const extraFields=[];
+  for(let slot=4;slot<=10;slot++)extraFields.push(await request('fields',{action:'create',label:'Isian '+slot}));
+  await request('fields', { action: 'create', label: 'Kesebelas' }, 422);
   await request('fields', { action: 'update', id: field.id, version: field.version, label: 'kota' }, 422);
   await request('fields', { action: 'create', label: 'Nama' }, 422);
   const participant = await request('participants', { action: 'create', name: '<script>Alam</script>', field_1: 'Panitia', field_2: 'Makassar' });
@@ -69,12 +71,12 @@ try {
   participants = await request('participants');
   assert.equal(participants.items[0].name, 'Alam');
   assert.equal((await request('prizes')).items[0].name, 'Tas acara');
-  assert.equal((await request('fields')).items.length, 3);
+  assert.equal((await request('fields')).items.length, 10);
   await request('participants', { action: 'delete', id: participant.id, version: participants.items[0].version });
   assert.equal((await request('participants')).items.length, 0);
   await request('prizes', { action: 'delete', id: prize.id, version: prizeEdited.version });
   assert.equal((await request('prizes')).items.length, 0);
-  for (const record of [replacement, second, third]) await request('fields', { action: 'delete', id: record.id, version: record.version });
+  for (const record of [replacement, second, third,...extraFields]) await request('fields', { action: 'delete', id: record.id, version: record.version });
   // Keyset pagination returns one page without leaking the foreign event.
   await database.query("INSERT INTO doorprize.participants (event_id, name) SELECT 1, 'Peserta ' || n FROM generate_series(1, 51) AS n");
   const first = await request('participants');

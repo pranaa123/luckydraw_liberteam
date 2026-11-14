@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Modules\Participants;
 
+use App\Modules\Events\FieldSchema;
+
 use App\Core\ApiError;
 
 /** Nilai OR dalam satu isian; isian yang berbeda digabung AND. */
 final class ParticipantFilter
 {
-    public const KEYS = ['name', 'field_1', 'field_2', 'field_3'];
+    public const KEYS = FieldSchema::KEYS;
 
     public static function normalize(mixed $input, array $fields): array
     {

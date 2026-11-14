@@ -45,12 +45,12 @@ try {
     const sizes = [...resultNode.querySelectorAll('text')].map(node => Number(node.getAttribute('font-size')));
     const start = Number(getComputedStyle(resultNode).opacity);
     resultAnimation.currentTime = 190;
-    return { duration: timing.duration,sizes,reference:parseFloat(document.querySelector('.shuffle-glyph').style.fontSize),start,middle: Number(getComputedStyle(resultNode).opacity),transform: getComputedStyle(resultNode).transform };
+    return { duration: timing.duration,sizes,reference:Number(document.querySelector('.shuffle-name-window').dataset.referenceSize),start,middle: Number(getComputedStyle(resultNode).opacity),transform: getComputedStyle(resultNode).transform };
   })()`);
   assert.equal(first.duration,380); assert.ok(Math.abs(first.sizes[0]-first.reference)<.001,JSON.stringify(first)); assert.deepEqual(first.sizes.slice(1),[first.sizes[0]*.5,first.sizes[0]*.25,first.sizes[0]*.25,first.sizes[0]*.48]); assert.ok(Math.abs(initialStandby-first.sizes[0]*.68)<.001); assert.equal(first.start,0);
   assert.ok(first.middle > 0 && first.middle < 1 && first.transform !== 'none');
   assert.ok(await page.evaluate(`(() => {setResultVisual({font_color:'#164e63',area_width:1800,area_x:60});feedResult(100,'result',1,'confirmed');return resultNode===document.querySelector('#draw-results > g') && resultText===resultNode.firstElementChild && resultAnimation===resultNode.getAnimations()[0] && resultAnimation.currentTime===190;})()`),'Edit visual dan pengesahan tidak membuat node/animasi baru');
-  assert.ok(await page.evaluate(`Math.abs(Number(resultText.getAttribute('font-size'))-parseFloat(document.querySelector('.shuffle-glyph').style.fontSize))<.001`),'Nama mengikuti acuan glyph setelah area berubah');
+  assert.ok(await page.evaluate(`Math.abs(Number(resultText.getAttribute('font-size'))-Number(document.querySelector('.shuffle-name-window').dataset.referenceSize))<.001`),'Nama mengikuti acuan glyph setelah area berubah');
   await page.evaluate('resultAnimation.finish()'); await page.wait(`document.querySelector('#draw-results > g').getAnimations().length === 0`);
   assert.equal(await page.evaluate(`getComputedStyle(resultNode).opacity`),'1');
   assert.equal(await page.evaluate(`(() => {feedResult(100,'result',1,'confirmed');return resultNode.getAnimations().length;})()`),0,'Paket hasil ulang tidak mengulang transisi');
@@ -99,10 +99,10 @@ try {
   await page.evaluate(`for(const node of document.querySelectorAll('#draw-results > g')) for(const animation of node.getAnimations()) animation.finish()`);
   await page.wait(`document.querySelector('#draw-results > g').getAnimations().length===0`);
   await page.evaluate(`setResultVisual({canvas_width:7680,canvas_height:4320,area_width:7000,area_height:3900,area_x:340,area_y:210});feedResult(103,'rolling');feedResult(103,'result');pauseResults();`);
-  assert.ok(await page.evaluate(`Math.abs(Number(document.querySelector('#draw-results text').getAttribute('font-size'))-parseFloat(document.querySelector('.shuffle-glyph').style.fontSize))<.001`),'8K mengikuti ukuran glyph');
+  assert.ok(await page.evaluate(`Math.abs(Number(document.querySelector('#draw-results text').getAttribute('font-size'))-Number(document.querySelector('.shuffle-name-window').dataset.referenceSize))<.001`),'8K mengikuti ukuran glyph');
   assert.ok(await page.evaluate(`Math.abs(Number(document.querySelector('#standby-text').getAttribute('font-size'))-Number(document.querySelector('#draw-results text').getAttribute('font-size'))*.68)<.001`),'Standby 8K mengikuti skala yang lebih besar');
   await page.evaluate(`feedResult(null,'');setResultVisual({canvas_width:320,canvas_height:180,area_width:300,area_height:160,area_x:10,area_y:10});feedResult(104,'rolling');feedResult(104,'result');pauseResults();`);
-  assert.ok(await page.evaluate(`Math.abs(Number(document.querySelector('#draw-results text').getAttribute('font-size'))-parseFloat(document.querySelector('.shuffle-glyph').style.fontSize))<.001`),'Canvas kecil tetap mengikuti glyph');
+  assert.ok(await page.evaluate(`Math.abs(Number(document.querySelector('#draw-results text').getAttribute('font-size'))-Number(document.querySelector('.shuffle-name-window').dataset.referenceSize))<.001`),'Canvas kecil tetap mengikuti glyph');
   await page.evaluate(`setResultVisual({canvas_width:1920,canvas_height:1080,area_width:80,area_height:50,area_x:0,area_y:0});feedResult(null,'');`);
   assert.ok(await page.evaluate(`Number(document.querySelector('#standby-text').getAttribute('font-size')) < 54`),'Area sempit mengecilkan standby agar tetap muat');
   assert.deepEqual(requests,[],'Transisi, pengaturan visual dan fixture tidak membaca API');

@@ -44,5 +44,10 @@ const longMeta={...emptyMeta,client_name:'W'.repeat(200),event_name:'W'.repeat(2
 const longRows=[{fields:[{slot:1,label:'W'.repeat(80)},{slot:2,label:'W'.repeat(80)},{slot:3,label:'W'.repeat(80)}],participant:{name:'W'.repeat(200),field_1:'W'.repeat(200),field_2:'W'.repeat(200),field_3:'W'.repeat(200)},prize_name:'W'.repeat(200),sequence_number:99}];
 const longPdf=await new Promise(resolve=>pdf.createPdf(createWinnerReport(longMeta,longRows)).getBuffer(resolve));
 await inspect(longPdf,longMeta);
+const tenFields=Array.from({length:10},(_,i)=>({slot:i+1,label:'Isian tambahan '+(i+1)}));
+const tenRows=[{fields:tenFields,participant:{name:'Nama peserta lengkap',...Object.fromEntries(tenFields.map(f=>['field_'+f.slot,'Nilai untuk kolom '+f.slot]))},prize_name:'Hadiah utama',sequence_number:1}];
+const tenPdf=await new Promise(resolve=>pdf.createPdf(createWinnerReport(emptyMeta,tenRows)).getBuffer(resolve));
+const ten=await inspect(tenPdf,emptyMeta);
+for(let slot=1;slot<=10;slot++)assert.ok(ten.all.includes('Nilaiuntukkolom'+slot),'Semua 10 isian masuk PDF');
 await mkdir(resolve(projectRoot,'.cache/winner-pdf'),{recursive:true});await writeFile(resolve(projectRoot,'.cache/winner-pdf/report.pdf'),bytes);
 console.log(`PDF: ${result.pages} halaman A4 landscape, semua font ≥12 pt, header/footer berulang, data lengkap, label historis, Unicode Latin, nol di depan, teks panjang dan metadata kosong lulus.`);

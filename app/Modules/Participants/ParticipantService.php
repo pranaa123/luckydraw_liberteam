@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Participants;
 
+use App\Modules\Events\FieldSchema;
+
 use App\Core\ApiError;
 use App\Core\Input;
 use App\Modules\Events\EventContext;
@@ -48,7 +50,7 @@ final class ParticipantService
             if (($input['field_schema'] ?? null) !== $schema) throw new ApiError('Isian undian sudah berubah. Tutup formulir dan buka kembali sebelum menyimpan.', 409);
             $allowed = array_column($fields, 'slot');
             $values = [Input::text($input, 'name')];
-            foreach ([1, 2, 3] as $slot) {
+            foreach (FieldSchema::SLOTS as $slot) {
                 $value = Input::text($input, 'field_' . $slot, 200, false);
                 if ($value !== '' && !in_array($slot, $allowed, true)) throw new ApiError('Isian peserta sudah berubah. Muat ulang daftar.', 409);
                 $values[] = $value === '' ? null : $value;

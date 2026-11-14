@@ -5,6 +5,7 @@ const statuses = { available: 'Tersedia', duplicate: 'Duplikat', eliminated: 'Te
 export class ManagementController {
   constructor() {
     this.items = { field: [] };
+    this.fieldLimit = Number(document.querySelector('#field-list').dataset.maxFields);
     this.loaded = new Set();
     this.pendingLoads = new Map();
     this.busy = false;
@@ -66,7 +67,7 @@ export class ManagementController {
       row.append(content, this.actions(type, record));
       list.append(row);
     }
-    document.querySelector('[data-open-editor="field"]').disabled = this.items.field.length >= 3;
+    document.querySelector('[data-open-editor="field"]').disabled = this.items.field.length >= this.fieldLimit;
     document.dispatchEvent(new CustomEvent('field-list-rendered',{ detail: this.items.field }));
     if (this.participants.loaded) this.participants.render();
   }
@@ -86,7 +87,7 @@ export class ManagementController {
     try {
       await this.load(type);
       if (type === 'participant') await this.load('field', true);
-      if (type === 'field' && !record && this.items.field.length >= 3) return;
+      if (type === 'field' && !record && this.items.field.length >= this.fieldLimit) return;
       this.editing = { type, record, fieldSchema: this.items.field.map(field => `${field.id}:${field.slot}:${field.version}`).join(',') };
       const form = document.querySelector('#record-form');
       form.reset();

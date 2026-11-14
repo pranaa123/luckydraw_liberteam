@@ -54,7 +54,9 @@ try {
   state = await start(2, 'selected', [{ prize_id: prizeA.id, quantity: 1 }, { prize_id: prizeB.id, quantity: 1 }], 200, { request_id: key });
   const id = state.draw.id;
   assert.equal(state.draw.phase, 'rolling');
-  assert.deepEqual(state.draw.sample_names, [], 'Mulai tidak perlu membaca nama untuk visual acak.');
+  assert.equal(state.draw.sample_names.length,11,'Visual memakai nama peserta tersedia, bukan glyph buatan.');
+  assert.ok(state.draw.sample_names.every(name=>name.startsWith('Peserta ')));
+  assert.ok(!state.draw.sample_names.includes('Peserta 12'),'Peserta duplikat tidak masuk visual.');
   assert.equal(state.draw.entries.length, 0);
   await action('confirm', id, 409);
   await request('participants', { action: 'create', name: 'Ditolak', status: 'available' }, 409);

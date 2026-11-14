@@ -15,6 +15,8 @@ final class VisualSettings
         'background_fit' => 'cover',
         'font_color' => '#172b4d', 'font_style' => 'sans-serif', 'text_case' => 'sentence',
         'show_field_1' => true, 'show_field_2' => true, 'show_field_3' => true,
+        'show_field_4' => true, 'show_field_5' => true, 'show_field_6' => true, 'show_field_7' => true,
+        'show_field_8' => true, 'show_field_9' => true, 'show_field_10' => true,
     ];
 
     public static function validate(mixed $input): array
@@ -22,7 +24,8 @@ final class VisualSettings
         if (!is_array($input)) throw new ApiError('Pengaturan visual tidak valid.');
         $value = array_replace(self::DEFAULTS, array_intersect_key($input, self::DEFAULTS));
         CanvasGeometry::validate($value);
-        foreach (['show_field_1','show_field_2','show_field_3'] as $key) {
+        foreach (FieldSchema::SLOTS as $slot) {
+            $key = 'show_field_' . $slot;
             if (!is_bool($value[$key])) throw new ApiError('Pilihan tampilan isian harus aktif atau nonaktif.');
         }
         foreach (['background_color', 'font_color'] as $key) {

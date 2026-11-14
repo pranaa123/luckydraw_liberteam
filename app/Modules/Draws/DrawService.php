@@ -26,12 +26,12 @@ final class DrawService
             if ($action === 'start') return $this->start($input, $event);
             $id = Input::integer($input, 'draw_id');
             $draw = $this->records->find($id) ?? throw new ApiError('Putaran undian tidak ditemukan.', 404);
-            $state = $this->records->state();
+            $state = $this->records->state(false);
             // Pengulangan request tidak mengubah status/stok dua kali atau menghapus layar putaran baru.
             if (($action === 'stop' && $draw['phase'] === 'result')
                 || ($action === 'confirm' && $draw['status'] === 'confirmed')
                 || ($action === 'eliminate' && $draw['status'] === 'eliminated')
-                || ($action === 'clear' && ($state['draw']['id'] ?? null) !== $id && $draw['status'] !== 'pending')) return $state;
+                || ($action === 'clear' && ($state['draw']['id'] ?? null) !== $id && $draw['status'] !== 'pending')) return $this->records->state();
             if (($state['draw']['id'] ?? null) !== $id) throw new ApiError('Putaran aktif sudah berubah. Muat ulang kontrol.', 409);
             $participants = []; $prizes = [];
             if ($action === 'clear') {

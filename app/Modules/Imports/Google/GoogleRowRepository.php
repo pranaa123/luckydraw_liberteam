@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Imports\Google;
 
+use App\Modules\Events\FieldSchema;
+
 use App\Modules\Events\EventContext;
 
 final class GoogleRowRepository
@@ -13,7 +15,7 @@ final class GoogleRowRepository
     public function current(int $source, array $keys): array
     {
         $rows = $this->event->database->query('SELECT r.row_key, r.row_number, r.participant_id, r.source_data, r.source_hash, r.incoming_data, r.incoming_hash, r.issue, r.issue_message, r.deleted, r.locally_removed, r.version,
-          p.name, p.field_1, p.field_2, p.field_3, p.status, p.version AS participant_version
+          ' . FieldSchema::columns('p') . ', p.status, p.version AS participant_version
           FROM doorprize.google_rows r LEFT JOIN doorprize.participants p ON p.id = r.participant_id AND p.event_id = r.event_id
           WHERE r.event_id = ? AND r.source_id = ? AND r.row_key IN (SELECT value::uuid FROM jsonb_array_elements_text(?::jsonb))', [$this->event->id, $source, json_encode($keys, JSON_THROW_ON_ERROR)]);
         $result = [];
@@ -27,22 +29,27 @@ final class GoogleRowRepository
     public function updateParticipants(array $updates): int
     {
         if (!$updates) return 0;
-        return (int) $this->event->database->query("WITH changed AS (UPDATE doorprize.participants p SET name = r.name, field_1 = r.field_1, field_2 = r.field_2, field_3 = r.field_3,
-          status = r.status, version = p.version + 1, updated_at = now()
-          FROM jsonb_to_recordset(?::jsonb) AS r(id bigint,name text,field_1 text,field_2 text,field_3 text,status text)
-          WHERE p.event_id = ? AND p.id = r.id AND (p.name,p.field_1,p.field_2,p.field_3,p.status) IS DISTINCT FROM (r.name,r.field_1,r.field_2,r.field_3,r.status) RETURNING 1)
-          SELECT count(*)::int AS count FROM changed", [json_encode($updates, JSON_THROW_ON_ERROR), $this->event->id])[0]['count'];
+        $keys = FieldSchema::KEYS;
+        $sets = implode(', ',array_map(static fn (string $key): string => "{$key}=r.{$key}",$keys));
+        $types = implode(', ',array_map(static fn (string $key): string => $key . ' text',$keys));
+        $before = FieldSchema::columns('p');
+        $after = FieldSchema::columns('r');
+        return (int) $this->event->database->query("WITH changed AS (UPDATE doorprize.participants p SET {$sets},status=r.status,version=p.version+1,updated_at=now()
+          FROM jsonb_to_recordset(?::jsonb) AS r(id bigint,{$types},status text)
+          WHERE p.event_id=? AND p.id=r.id AND ({$before},p.status) IS DISTINCT FROM ({$after},r.status) RETURNING 1)
+          SELECT count(*)::int AS count FROM changed",[json_encode($updates,JSON_THROW_ON_ERROR),$this->event->id])[0]['count'];
     }
 
     public function insertParticipants(int $source, array $inserts): array
     {
         if (!$inserts) return [];
-        $json = json_encode($inserts, JSON_THROW_ON_ERROR);
-        $this->event->database->query("INSERT INTO doorprize.participants (event_id,name,field_1,field_2,field_3,status,source_id,source_row_key,source_hash)
-          SELECT ?, r.data->>'name', NULLIF(r.data->>'field_1',''), NULLIF(r.data->>'field_2',''), NULLIF(r.data->>'field_3',''), 'duplicate', ?, r.row_key, r.hash
-          FROM jsonb_to_recordset(?::jsonb) AS r(row_key text, data jsonb, hash text)
-          ON CONFLICT (source_id,source_row_key) WHERE source_id IS NOT NULL AND source_row_key IS NOT NULL DO NOTHING", [$this->event->id, $source, $json]);
-        return $this->event->database->query('SELECT id, source_row_key FROM doorprize.participants WHERE event_id = ? AND source_id = ? AND source_row_key IN (SELECT value->>\'row_key\' FROM jsonb_array_elements(?::jsonb))', [$this->event->id, $source, $json]);
+        $json = json_encode($inserts,JSON_THROW_ON_ERROR);
+        $columns = FieldSchema::columns();
+        $values = implode(', ',array_map(static fn (string $key): string => $key==='name' ? "r.data->>'name'" : "NULLIF(r.data->>'{$key}','')",FieldSchema::KEYS));
+        $this->event->database->query("INSERT INTO doorprize.participants (event_id,{$columns},status,source_id,source_row_key,source_hash)
+          SELECT ?,{$values},'duplicate',?,r.row_key,r.hash FROM jsonb_to_recordset(?::jsonb) AS r(row_key text,data jsonb,hash text)
+          ON CONFLICT(source_id,source_row_key) WHERE source_id IS NOT NULL AND source_row_key IS NOT NULL DO NOTHING",[$this->event->id,$source,$json]);
+        return $this->event->database->query('SELECT id,source_row_key FROM doorprize.participants WHERE event_id=? AND source_id=? AND source_row_key IN (SELECT value->>\'row_key\' FROM jsonb_array_elements(?::jsonb))',[$this->event->id,$source,$json]);
     }
 
     public function remember(array $rows, int $source, ?string $snapshot): void
@@ -78,7 +85,7 @@ final class GoogleRowRepository
 
     public function issues(int $source, string $after): array
     {
-        $rows = $this->event->database->query('SELECT r.row_key,r.row_number,r.participant_id,r.issue,r.issue_message,r.locally_removed,r.source_data,r.incoming_data,r.version,p.name,p.field_1,p.field_2,p.field_3
+        $rows = $this->event->database->query('SELECT r.row_key,r.row_number,r.participant_id,r.issue,r.issue_message,r.locally_removed,r.source_data,r.incoming_data,r.version,' . FieldSchema::columns('p') . '
           FROM doorprize.google_rows r LEFT JOIN doorprize.participants p ON p.id = r.participant_id AND p.event_id = r.event_id
           WHERE r.event_id = ? AND r.source_id = ? AND r.issue IS NOT NULL AND r.row_key > ?::uuid ORDER BY r.row_key LIMIT 51', [$this->event->id, $source, $after]);
         foreach ($rows as &$row) foreach (['source_data','incoming_data'] as $field) if ($row[$field] !== null && !is_array($row[$field])) $row[$field] = json_decode($row[$field],true,32,JSON_THROW_ON_ERROR);

@@ -32,9 +32,9 @@ Dokumen ini menyimpan kebutuhan pengguna dan klarifikasi yang telah disepakati d
 - Preview kecil di bagian atas tetap terlihat saat scroll. Tombol kontrol berada di bawah preview.
 - Visual standby bertuliskan "Bersiap untuk mengundi".
 - Tombol Mulai memicu pengundian dan berubah menjadi Stop.
-- Selama pengacakan, hanya ada satu baris besar sebagai visual animasi. Huruf teracak per karakter, bervariasi, tidak terasa mengulang pola yang sama; motion menarik, modern, luwes, dan ringan.
-- Referensi gerak: [split-flap Colorion](https://text-effects.colorion.co/effects/split-flap-text-animation/), tanpa kotak pada huruf. Visual acak tetap satu baris terpusat; panjang nama ditangani pada hasil setelah Stop.
-- Koreksi terbaru pengguna: selama pengacakan, huruf harus terus-menerus acak tanpa siklus membentuk/memunculkan nama lalu mengulang. Nama terpilih baru muncul setelah Stop. Pengguna telah meminta revisi ini diterapkan.
+- Selama pengacakan, hanya ada satu baris besar sebagai visual animasi. Revisi terbaru memakai nama peserta yang tersedia secara acak cepat dan bervariasi dengan gerak halus sampai Stop.
+- Referensi awal: split-flap tanpa kotak. Revisi terbaru mengganti huruf buatan dengan nama peserta utuh; nama panjang diperkecil sendiri agar muat satu baris.
+- Koreksi sebelumnya berupa glyph digantikan permintaan terbaru: nama peserta asli berganti cepat, halus dan bervariasi sampai dihentikan. Hasil pemenang baru ditentukan pada Stop.
 - Setelah Stop, tampilkan seluruh nama hasil undian sesuai jumlah yang ditentukan, dengan tata letak adaptif.
 - Tombol pengesahan mengesahkan seluruh nama yang sedang tampil sebagai pemenang.
 - Tombol eliminasi mengeliminasi seluruh nama yang sedang tampil dari daftar layak undi.
@@ -86,7 +86,7 @@ Dokumen ini menyimpan kebutuhan pengguna dan klarifikasi yang telah disepakati d
 ## Isian undian
 
 - Nama sebagai isian default.
-- Mendukung maksimal 3 isian tambahan.
+- Mendukung maksimal 10 isian tambahan di luar Nama (klarifikasi pengguna terbaru).
 - Nama hadiah tampil otomatis ketika switch hadiah di halaman operator aktif; bukan bagian pengaturan isian tambahan.
 
 ## Daftar hadiah
@@ -163,9 +163,9 @@ Dokumen ini menyimpan kebutuhan pengguna dan klarifikasi yang telah disepakati d
 - Tambah, edit, dan hapus peserta/hadiah/isian tambahan sudah terhubung ke database; termasuk paginasi peserta, ringkasan status/stok, audit mutasi, transaksi, dan pemeriksaan versi untuk menolak perubahan dari formulir lama.
 - Informasi acara beserta switch tampil, canvas/area nama/posisi pixel, warna/gambar background, font/penulisan, serta background per hadiah sudah dapat diedit dan disimpan. Preview/output mengikuti perubahan tanpa polling. Visual memakai SVG dan file background asli, tidak mengambil raster dari preview operator. Perubahan draft baru bertahan setelah Simpan.
 - Hadiah dapat dipindah naik/turun dan stok nol tetap berada di bawah. Undian mengaktifkan background khusus untuk satu jenis hadiah dan background utama untuk beberapa jenis.
-- Animasi split-flap tanpa kotak mengikuti putaran nyata, pengaturan visual dan tersinkron dengan output. Tombol Coba animasi telah dihapus atas permintaan pengguna. Glyph terus berubah tanpa target nama. Tidak ada request data per frame ataupun pembacaan nama peserta untuk kebutuhan animasi saat Mulai.
+- Animasi nama peserta mengikuti putaran nyata, pengaturan visual dan tersinkron dengan output. Maksimal 512 nama layak diambil sekali melalui indeks pool saat Mulai, tanpa scan seluruh daftar atau request per frame. Tombol Coba animasi tetap dihapus.
 - Mesin undian sudah terhubung: jumlah nama, Mulai/Stop, hasil adaptif beserta isian, Sahkan/Eliminasi/Kosongkan, hadiah manual/acak, stok saat pengesahan dan audit. Status/pool/stok diproses atomik dan hasil pulih setelah refresh/restart. Riwayat aktivitas tersedia dengan paginasi.
-- Koreksi huruf terus acak sampai Stop sudah diterapkan. Stop menghentikan glyph dan menampilkan seluruh nama terpilih dengan tata letak adaptif.
+- Nama peserta berganti terus sampai Stop, lalu menampilkan seluruh nama terpilih dengan tata letak adaptif.
 - Filter bertingkat tersedia pada undian dan daftar peserta, dengan switch, multi nilai, Pilih semua, pengecualian serta paginasi nilai. Daftar peserta mendukung pencarian awalan nama, filter status, pilihan lintas halaman/seluruh hasil dan edit massal status/nama/isian. Status Pemenang/Duplikat tetap dikelola proses terkait. Filter undian terakhir disimpan saat Mulai dan indeksnya diperbarui secara bertahap saat data berubah.
 - Import Excel/Google Sheets, aturan duplikasi, daftar pemenang historis lengkap dan PDF sudah tersedia. Login email/password, logout, sesi 30 hari, CSRF dan RLS pemilik sudah diimplementasikan.
 - Database pengembangan lokal sudah tersedia. Koneksi Supabase dan preview cloud PHP sudah diuji; database lokal dipertahankan terpisah. Target GitHub, Vercel dan Supabase khusus aplikasi baru sudah ditetapkan pada catatan di atas.
@@ -223,3 +223,10 @@ Dokumen ini menyimpan kebutuhan pengguna dan klarifikasi yang telah disepakati d
 ## Reset untuk acara baru — 14 November 2026
 
 Pengguna meminta reset agar aplikasi dapat digunakan benar-benar dari nol untuk acara baru. Reset mengosongkan peserta, hadiah, pemenang/hasil dan riwayat, isian tambahan, aturan duplikasi/filter, informasi acara, background dan pengaturan visual. Koneksi Google Sheets diputus tanpa menghapus data spreadsheet eksternal. Akun dan sesi login dipertahankan. Tombol diletakkan pada Persiapan, dengan ringkasan dan ketik RESET sebelum konfirmasi. Penerapan fitur tidak mereset data pengguna; tindakan dijalankan hanya ketika operator mengonfirmasinya.
+
+## Keputusan lanjutan November 2026
+
+- Judul bagian dibuat berbeda jelas dengan pita biru, termasuk nomor subbagian Persiapan; tetap mengikuti layout putih/biru.
+- Alur utama Google Sheets disepakati akun layanan khusus aplikasi dengan akses Viewer pada sheet privat. Operator membagikan sheet ke email aplikasi dan memasukkan link; tidak perlu Apps Script. Pengaturan Cloud/keyless dan integrasi pembaca baru masih dalam pengembangan, belum dianggap aktif. Konektor lama dipertahankan selama transisi.
+- Kegagalan Google tidak boleh menghapus data tersimpan; undian memakai data lokal/database dan tidak bergantung panggilan Google. Kunci duplikasi tetap mengikuti switch operator.
+- Perubahan background hadiah sebelum pengundian masih dibahas. Jangan mengubah perilakunya sampai pengguna menyepakati alur.

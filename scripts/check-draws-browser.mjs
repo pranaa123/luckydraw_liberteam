@@ -80,7 +80,7 @@ try {
   assert.match(await operator.evaluate(`document.querySelector('#draw-lock-reason').textContent`),/selama pengundian/);
   const output = await browser.page(`${origin}/output`, 1920, 1080);
   await browser.call('Network.enable', {}, output.sessionId);
-  await output.wait(`document.querySelector('#visual-stage')?.dataset.animation === 'running' && document.querySelectorAll('.shuffle-glyph').length > 0`);
+  await output.wait(`document.querySelector('#visual-stage')?.dataset.animation === 'running' && document.querySelectorAll('.shuffle-name').length > 0`);
   assert.equal((await operator.evaluate(stateExpression)).draw.id, (await output.evaluate(stateExpression)).draw.id);
   assert.equal(await output.evaluate(`document.querySelector('#stage-image').getAttribute('href')`), main, 'Beberapa hadiah memakai background utama.');
   requests.length = 0;

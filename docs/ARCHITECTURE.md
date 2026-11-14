@@ -49,8 +49,8 @@ Preview dan panggung menggunakan template output yang sama. Implementasi undian 
 - Frontend: `SettingsController` mengelola form/draft/save; `PresentationState` memuat konfigurasi sekali dan mengirim paket kecil melalui BroadcastChannel; `PresentationView` memakai SVG viewBox serta teks native, sehingga output tidak diraster dari preview kecil. Clock paket menangani respons awal yang datang terlambat; versi database mencegah draft lama menimpa hasil simpan baru.
 - `PrizeStore` berbagi cache hadiah antara Persiapan dan daftar hadiah; `PrizeController` menangani render/urutan. Reorder memperbarui dua record berparameter di dalam lock acara, bukan memuat ulang seluruh list. `ManagementController` tetap mengelola editor bersama dan peserta/isian.
 - Input visual digabung per frame animasi. Tidak ada query per keystroke/frame; QA browser memeriksa bahwa pengaturan tidak memuat peserta dan tidak menambah request data saat nilai berubah.
-- Animasi hanya mengikuti draw aktif dari DrawState. Tombol Coba animasi dan kanal AnimationState sudah dihapus. `shuffle-model.js` menghasilkan glyph dari seed/waktu yang sama tanpa target nama, siklus reveal atau fase selesai; jitter memberi tempo berbeda tiap huruf. Seed ini bukan sumber pemilihan pemenang.
-- `ShuffleAnimation` merender satu baris glyph HTML dalam SVG foreignObject agar transformasi rotateX tetap tajam mengikuti viewBox. Jumlah glyph/ukuran disesuaikan area; node dan metrik font didaur ulang. Satu requestAnimationFrame hanya berjalan saat terlihat dan aktif; reduced motion mengganti glyph tanpa flip setiap 800 ms. Tidak ada akses API/penyimpanan dari renderer, dan tidak ada paket per frame. Stop membatalkan frame/timer dan menyembunyikan glyph sebelum hasil SVG ditampilkan.
+- Animasi hanya mengikuti draw aktif dari DrawState. DrawAnimationRepository mengambil maksimal 512 nama layak memakai Floyd sampling posisi pool terindeks. NameSequence mengacak sampel dari seed/waktu yang sama dan menghindari pengulangan dalam satu siklus; seed ini bukan sumber pemilihan pemenang.
+- `ShuffleAnimation` merender nama utuh dalam SVG foreignObject: dua node HTML didaur ulang, bergerak halus pada satu baris setiap 100 ms. Nama panjang diukur dan diperkecil sendiri, tanpa wrapping atau ellipsis. Satu requestAnimationFrame hanya aktif saat terlihat; reduced motion mengganti nama tanpa gerak setiap 800 ms. Renderer tidak mengakses API/penyimpanan. Stop membatalkan frame/timer sebelum hasil SVG ditampilkan.
 
 - Halaman dasar tidak membuka koneksi database atau mengambil daftar data.
 - Endpoint modul hanya mengambil kolom dan halaman data yang diperlukan. Jangan menggunakan `SELECT *` untuk list aplikasi.
@@ -77,7 +77,7 @@ Migrasi `003_draw_engine.sql` menambahkan metadata putaran, pointer display_draw
 
 DrawController/RoundPrizes mengelola kontrol dan pembagian hadiah; DrawPresentation/result-layout merender nama/isian/hadiah dalam SVG dengan grid yang dihitung dari area dan metrik font. Respons membawa delta peserta/hadiah; halaman peserta yang sudah dimuat diperbarui dari delta. Bila respons hilang, satu GET memulihkan snapshot dan hanya cache terkait yang diinvalidasi. Versi putaran/data menolak paket lama. HistoryService/HistoryRepository menyajikan audit 50 baris dengan cursor ID; HistoryController memuat saat menu dibuka/perubahan terkait, tanpa polling.
 
-Koreksi animasi pengguna sudah diterapkan: huruf terus acak tanpa fase membentuk nama hingga Stop. Pemilihan pemenang memakai random_int di server, terpisah dari seed/glyph visual.
+Revisi animasi terbaru memakai nama peserta asli yang berubah sampai Stop. Pemilihan pemenang memakai random_int di server, terpisah dari sampel/seed visual.
 
 ## Filter dan edit massal
 

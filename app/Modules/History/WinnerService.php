@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\History;
 
+use App\Modules\Events\FieldSchema;
 use App\Core\ApiError;
 use App\Modules\Events\EventContext;
 
@@ -36,7 +37,7 @@ final class WinnerService
             $participant = $decode($row['participant_snapshot']);
             return ['id' => (int) $row['id'], 'draw_id' => (int) $row['draw_id'], 'position' => (int) $row['position'],
               'sequence_number' => (int) $row['sequence_number'], 'confirmed_at' => $row['resolved_at'],
-              'participant' => array_intersect_key($participant, array_flip(['name','field_1','field_2','field_3'])),
+              'participant' => array_intersect_key($participant, array_flip(FieldSchema::KEYS)),
               'prize_name' => $row['prize_name'] ?? '', 'fields' => $decode($row['field_definitions'])];
         }, array_slice($rows, 0, $limit));
         return ['items' => $items, 'next' => $next, 'snapshot' => $snapshot, ...($meta === null ? [] : ['meta' => $meta])];

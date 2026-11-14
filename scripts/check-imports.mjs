@@ -6,8 +6,8 @@ import { openLocalDatabase } from './local-database.mjs';
 import { createParticipantTemplate } from '../public/assets/modules/excel-template.js';
 import { cellText, assertWorkbookSize } from '../public/assets/modules/excel-values.js';
 
-for (let count = 0; count <= 3; count++) {
-  const fields = Array.from({ length: count }, (_, index) => ({ key: `field_${index + 1}`, label: ['Divisi', 'Nomor peserta', 'Kota'][index] }));
+for (let count = 0; count <= 10; count++) {
+  const fields = Array.from({ length: count }, (_, index) => ({ key: `field_${index + 1}`, label: ['Divisi', 'Nomor peserta', 'Kota'][index] || `Isian ${index+1}` }));
   const original = createParticipantTemplate(ExcelJS, { fields, client_name: 'Client', event_name: 'Acara' });
   const bytes = await original.xlsx.writeBuffer(); assertWorkbookSize(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
   const book = await new ExcelJS.Workbook().xlsx.load(bytes), sheet = book.getWorksheet('Peserta');
@@ -21,7 +21,7 @@ assert.equal(cellText({ value: 123, numFmt: '00000' }), '00123');
 assert.equal(cellText({ value: { formula: 'A1', result: 'Alam' } }), 'Alam');
 assert.throws(() => cellText({ value: { formula: 'A1' } }));
 assert.throws(() => assertWorkbookSize(new ArrayBuffer(100)));
-console.log('Template XLSX: 1–4 kolom, style, freeze, tabel kosong, format teks, Panduan, cetak dan pembacaan tipe sel lulus.');
+console.log('Template XLSX: 1–11 kolom, style, freeze, tabel kosong, format teks, Panduan, cetak dan pembacaan tipe sel lulus.');
 
 const db = await openLocalDatabase('memory://'), php = await createPHP(), disconnect = await connectAuthenticatedDatabase(php, db);
 async function request(path, payload, expected = 200) {

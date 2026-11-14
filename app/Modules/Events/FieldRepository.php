@@ -32,7 +32,7 @@ final class FieldRepository
     public function delete(int $id, int $slot): void
     {
         // Slot comes exclusively from the locked database record, never from user input.
-        if (!in_array($slot, [1, 2, 3], true)) throw new \LogicException('Slot isian tidak valid.');
+        if (!in_array($slot, FieldSchema::SLOTS, true)) throw new \LogicException('Slot isian tidak valid.');
         $this->event->database->query("UPDATE doorprize.participants SET field_{$slot} = NULL, version = version + 1, updated_at = now() WHERE event_id = ? AND field_{$slot} IS NOT NULL", [$this->event->id]);
         $this->event->database->query('DELETE FROM doorprize.event_fields WHERE event_id = ? AND id = ?', [$this->event->id, $id]);
         $duplicates = new \App\Modules\Participants\DuplicateRepository($this->event);

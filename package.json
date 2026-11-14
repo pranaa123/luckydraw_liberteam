@@ -7,7 +7,7 @@
     "build": "node scripts/build-assets.mjs && tailwindcss -i resources/css/app.css -o public/assets/app.css --minify",
     "watch": "tailwindcss -i resources/css/app.css -o public/assets/app.css --watch",
     "dev": "node scripts/dev.mjs",
-    "check": "node scripts/check.mjs && node scripts/check-auth.mjs && node scripts/check-management.mjs && node scripts/check-settings.mjs && node scripts/check-canvas.mjs && node scripts/check-result-layout.mjs && node scripts/check-draws.mjs && node scripts/check-winners.mjs && node scripts/check-winner-pdf.mjs && node scripts/check-filters.mjs && node scripts/check-imports.mjs && node scripts/check-google-connector.mjs && node scripts/check-google-sheets.mjs && node scripts/check-supabase-schema.mjs && node scripts/check-cloud.mjs && node scripts/check-event-reset.mjs",
+    "check": "node scripts/check.mjs && node scripts/check-auth.mjs && node scripts/check-ten-fields.mjs && node scripts/check-name-sequence.mjs && node scripts/check-management.mjs && node scripts/check-settings.mjs && node scripts/check-canvas.mjs && node scripts/check-result-layout.mjs && node scripts/check-draws.mjs && node scripts/check-winners.mjs && node scripts/check-winner-pdf.mjs && node scripts/check-filters.mjs && node scripts/check-imports.mjs && node scripts/check-google-connector.mjs && node scripts/check-google-sheets.mjs && node scripts/check-supabase-schema.mjs && node scripts/check-cloud.mjs && node scripts/check-event-reset.mjs",
     "check:browser": "node scripts/check-output-browser.mjs",
     "check:management:browser": "node scripts/check-management-browser.mjs",
     "check:settings:browser": "node scripts/check-settings-browser.mjs",
@@ -29,7 +29,8 @@
     "check:auth:browser": "node scripts/check-auth-browser.mjs",
     "check:cloud": "node scripts/check-cloud.mjs",
     "check:event-reset": "node scripts/check-event-reset.mjs",
-    "check:event-reset:browser": "node scripts/check-event-reset-browser.mjs"
+    "check:event-reset:browser": "node scripts/check-event-reset-browser.mjs",
+    "check:fields:browser": "node scripts/check-ten-fields-browser.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.16",

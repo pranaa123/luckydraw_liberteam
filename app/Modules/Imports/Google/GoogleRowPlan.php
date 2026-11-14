@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Imports\Google;
 
+use App\Modules\Events\FieldSchema;
+
 /** Three-way merge: isian sumber yang tidak berubah tidak menimpa edit operator. */
 final class GoogleRowPlan
 {
@@ -15,7 +17,7 @@ final class GoogleRowPlan
             $row = ['row_key' => $event['row_key'], 'row_number' => $event['row_number'], 'participant_id' => $old['participant_id'] ?? null,
               'source_data' => $old['source_data'] ?? (object) [], 'source_hash' => $old['source_hash'] ?? '', 'incoming_data' => null, 'incoming_hash' => null,
               'issue' => null, 'issue_message' => null, 'deleted' => $event['operation'] === 'delete', 'locally_removed' => (bool) ($old['locally_removed'] ?? false)];
-            $current = []; foreach (['name','field_1','field_2','field_3'] as $key) $current[$key] = $old[$key] ?? null;
+            $current = []; foreach (FieldSchema::KEYS as $key) $current[$key] = $old[$key] ?? null;
             if ($row['deleted']) {
                 if ($row['participant_id'] && in_array($old['status'], ['available','duplicate'], true)) { $plan['updates'][] = ['id' => $row['participant_id'], ...$current, 'status' => 'eliminated']; $plan['deleted']++; }
             } else {

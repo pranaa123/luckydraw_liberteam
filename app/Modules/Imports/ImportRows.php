@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Imports;
 
+use App\Modules\Events\FieldSchema;
+
 use App\Core\ApiError;
 
 /** Validasi server tetap berlaku meskipun berkas telah dibaca worker. */
@@ -18,7 +20,7 @@ final class ImportRows
             if (!is_array($row) || !is_int($row['row_number'] ?? null) || $row['row_number'] <= $after || $row['row_number'] > 1048576) throw new ApiError('Urutan baris import tidak valid.');
             $after = $row['row_number']; $issue = null;
             $result = ['row_number' => $after];
-            foreach (['name', 'field_1', 'field_2', 'field_3'] as $key) {
+            foreach (FieldSchema::KEYS as $key) {
                 $value = $row[$key] ?? '';
                 if (!is_string($value)) throw new ApiError('Nilai import harus berupa teks.');
                 $value = trim($value);

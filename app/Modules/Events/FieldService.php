@@ -30,8 +30,8 @@ final class FieldService
             foreach ($fields as $field) {
                 if ((int) $field['id'] !== $id && strtolower($field['label']) === strtolower($label)) throw new ApiError('Label isian sudah digunakan.');
             }
-            $free = array_values(array_diff([1, 2, 3], array_column($fields, 'slot')));
-            if ($id === null && !$free) throw new ApiError('Maksimal 3 isian tambahan.');
+            $free = array_values(array_diff(FieldSchema::SLOTS, array_column($fields, 'slot')));
+            if ($id === null && !$free) throw new ApiError('Maksimal ' . FieldSchema::MAX_ADDITIONAL . ' isian tambahan.');
             return $this->records->save($id, $label, (int) ($old['slot'] ?? $free[0]));
         });
     }
