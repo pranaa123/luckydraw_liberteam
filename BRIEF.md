@@ -216,6 +216,7 @@ Dokumen ini menyimpan kebutuhan pengguna dan klarifikasi yang telah disepakati d
 ## Penataan kontrol operator dan informasi acara
 
 - Kotak kontrol boleh lebih lebar dari tombol. Pengaturan output ada di kiri dan filter peserta undian di kanan pada toolbar sejajar di bawah preview.
+- Panel kiri (preview/kontrol) mengambil 40% area kerja desktop, panel kanan 60%. Lebar minimum kiri 360 px menjaga kontrol pada tablet; layar kecil tetap bertumpuk.
 - Jumlah nama berada di kanan seluruh grup Mulai/Sahkan/Eliminasi/Kosongkan, beserta ringkasan peserta tersedia. Pada ruang sempit, jumlah bergeser ke bawah kanan agar tiga tombol tetap sebaris.
 - Nama client dan nama acara bersebelahan pada formulir Persiapan; pengguna mengonfirmasi perubahan ini untuk formulir, bukan visual output.
 - Hilangkan penanda Pengembangan lokal dari area kerja.
