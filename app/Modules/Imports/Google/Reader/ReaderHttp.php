@@ -47,4 +47,12 @@ final class ReaderHttp
         if ($status!==200 || !is_array($data)) throw new ApiError('Google belum dapat memproses permintaan. Data tersimpan tetap tersedia.',502);
         return $data;
     }
+
+    public function close(): void
+    {
+        if($this->job!==null && function_exists('post_message_to_js')){
+            post_message_to_js(json_encode(['type'=>'google_reader_done','job_id'=>$this->job,'scope'=>$this->event->ownerId . ':' . $this->event->id,'flow'=>$this->flow],JSON_THROW_ON_ERROR));
+            $this->job=null;
+        }
+    }
 }

@@ -68,7 +68,7 @@ export function connectPortableDatabase(php, database, options = {}) {
         return JSON.stringify({token:await googleDevelopmentIdentity()});
       } catch { return JSON.stringify({error:true}); }
     }
-    if (request.type === 'google_reader_http') return JSON.stringify(reader(request));
+    if (['google_reader_http','google_reader_done'].includes(request.type)) return JSON.stringify(reader(request));
     if (request.type === 'google_http') return JSON.stringify(google(request));
     if (request.type !== 'database') throw new Error('Pesan runtime tidak dikenal.');
     try {

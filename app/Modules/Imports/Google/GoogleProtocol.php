@@ -71,19 +71,28 @@ final class GoogleProtocol
             if ($event['operation'] === 'upsert') {
                 $values = $event['values'] ?? null;
                 if (!is_array($values)) throw new ApiError('Isi baris Google tidak valid.', 502);
-                foreach ($mapping as $field => $column) {
-                    $text = $values[(string) $column] ?? '';
-                    if (!is_string($text) || strlen($text) > 4000) throw new ApiError('Nilai sel Google tidak valid.', 502);
-                    $data[$field] = trim(str_replace("\0", '', $text));
-                    if (strlen($data[$field]) > 200 || str_contains($text, "\0")) $issue = 'Isian terlalu panjang atau mengandung karakter tidak valid.';
-                }
-                if (($data['name'] ?? '') === '') $issue = 'Nama wajib diisi.';
-                if (!empty($event['issue'])) $issue = $event['issue'] === 'LONG_CELL' ? 'Isian terlalu panjang. Ringkas teks pada Google Sheets.' : 'Ada sel yang tidak dapat dibaca. Perbaiki pada Google Sheets.';
+                $parsed=self::rowData($values,$mapping,$event['issue'] ?? null);
+                $data=$parsed['data'];$issue=$parsed['issue'];
             }
             $rows[$event['key']] = ['row_key' => $event['key'], 'row_number' => $event['row_number'], 'operation' => $event['operation'], 'data' => $data,
               'hash' => hash('sha256', json_encode($data, JSON_THROW_ON_ERROR)), 'issue' => $issue];
         }
         return array_values($rows);
+    }
+
+    /** Validasi nilai dipakai bersama konektor lama dan pembacaan snapshot tanpa ID sumber. */
+    public static function rowData(array $values,array $mapping,?string $sourceIssue=null): array
+    {
+        $data=[];$issue=null;
+        foreach($mapping as $field=>$column){
+            $text=$values[(string)$column] ?? '';
+            if(!is_string($text)||strlen($text)>4000)throw new ApiError('Nilai sel Google tidak valid.',502);
+            $data[$field]=trim(str_replace("\0",'',$text));
+            if(strlen($data[$field])>200||str_contains($text,"\0"))$issue='Isian terlalu panjang atau mengandung karakter tidak valid.';
+        }
+        if(($data['name'] ?? '')==='')$issue='Nama wajib diisi.';
+        if($sourceIssue)$issue=$sourceIssue==='LONG_CELL'?'Isian terlalu panjang. Ringkas teks pada Google Sheets.':'Ada sel yang tidak dapat dibaca. Perbaiki pada Google Sheets.';
+        return ['data'=>$data,'issue'=>$issue];
     }
 
     public static function decode(array $source): array

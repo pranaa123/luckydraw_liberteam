@@ -44,7 +44,8 @@ final class GoogleSyncService
         try {
             if ($source['connection_mode']==='reader') {
                 $http = new Reader\ReaderHttp($this->event,$source['pending_job_id'],hash('sha256',json_encode([$id,$source['version'],$source['sync_cursor']],JSON_THROW_ON_ERROR)));
-                $remote = ['response'=>(new Reader\ReaderSheet($this->event,$http,$source['spreadsheet_id']))->page($source)];
+                $remote=['response'=>(new Reader\ReaderSnapshotService($this->event))->fetch($source,$http)];
+                $http->close();
             } else {
                 $payload = ['protocol'=>1,'secret'=>(new SecretVault())->decrypt($source['encrypted_secret']),'action'=>$probe?'probe':$source['sync_cursor']['kind'],
                   'cursor'=>$source['sync_cursor'],'header_hash'=>$probe?null:$source['header_hash'],'columns'=>array_values($source['column_mapping']),'limit'=>200];
@@ -70,24 +71,29 @@ final class GoogleSyncService
                 if (($reply['header_hash'] ?? '') !== $source['header_hash']) throw new ApiError('Header sheet berubah. Periksa kembali pemetaan kolom.',409);
                 $reader = $source['connection_mode']==='reader';
                 if ($reader && isset($reply['sheet_name']) && $reply['sheet_name']!==$source['sheet_name']) (new Reader\ReaderRepository($this->event))->rename($id,$reply['sheet_name']);
-                $cursor = $reader ? $reply['reader_cursor'] : GoogleProtocol::cursor($reply,$source['sync_cursor']);
-                $events = GoogleProtocol::events($reply,$source['column_mapping']);
-                $snapshot = $reader ? $reply['snapshot_id'] : ($source['sync_cursor']['snapshot_id'] ?? null);
-                $done = $reader ? $reply['initial_done'] : ($source['sync_cursor']['kind'] === 'snapshot' && $reply['done']);
-                if ($reader && $snapshot) (new Reader\ReaderRepository($this->event))->checkIdentities($id,$reply['events'],$snapshot);
-                $summary = (new GoogleRowService($this->event))->apply($id,$events,$snapshot,$reader ? $reply['final_snapshot'] : $done);
-                $summary['more'] = $reply['more'];
+                $readerFlow=$reader?new Reader\ReaderSnapshotService($this->event):null;
+                if($reader){
+                    $batch=$readerFlow->plan($source,$reply);
+                    $cursor=$batch['cursor'];$events=$batch['events'];$snapshot=$batch['snapshot'];$done=$batch['complete'];$more=$batch['more'];
+                }else{
+                    $cursor=GoogleProtocol::cursor($reply,$source['sync_cursor']);$events=GoogleProtocol::events($reply,$source['column_mapping']);
+                    $snapshot=$source['sync_cursor']['snapshot_id'] ?? null;$done=$source['sync_cursor']['kind']==='snapshot' && $reply['done'];$more=$reply['more'];
+                }
+                $summary=(new GoogleRowService($this->event))->apply($id,$events,$snapshot,$reader?false:$done);
+                if($reader)$readerFlow->finish($id,$batch);
+                $summary['more']=$more;
                 $phase = $reader ? ($source['initial_complete'] || $done ? 'live' : 'initial') : ($cursor['kind']==='changes' ? 'live' : 'initial');
                 $this->records->advance($id,$cursor,$phase,$summary);
                 if ($done && !$summary['changed']) $this->records->bumpDataVersion();
                 if ($summary['changed']) { $this->records->bumpDataVersion(); $this->records->audit($id,'sync',['name' => $source['sheet_name'], ...$summary]); }
                 return ['source' => $this->public($id),'summary' => $summary,'changed' => $summary['changed'] > 0,
-                  'state_changed' => $done || ($reader && !$source['initial_complete'] && (int)$source['failure_count']>0),'more' => $reply['more']];
+                  'state_changed' => $done || ($reader && !$source['initial_complete'] && (int)$source['failure_count']>0),'more'=>$more];
             });
         } catch (Reader\ReaderPending $pending) {
             $this->records->pending($id,$lease,$pending->job);
             return ['source'=>$this->public($id),'pending'=>true,'changed'=>false];
         } catch (ApiError $error) {
+            if(isset($http))$http->close();
             if ($error->status === 428) {
                 $this->event->database->transaction(function () use ($id,$lease,$source): void {
                     $this->records->lockEvent(); $fresh = $this->records->find($id,true);
@@ -105,6 +111,6 @@ final class GoogleSyncService
     public function public(int $id): array
     {
         $source = $this->records->find($id);
-        return array_intersect_key($source,array_flip(['id','revision','phase','version','connection_mode','identity_column','sheet_id','header_row','synced_rows','invalid_rows','conflict_rows','error_code','error_message','next_attempt_at','last_summary','spreadsheet_id','sheet_name','sync_enabled','closes_at','last_synced_at','deadline_passed']));
+        return array_intersect_key($source,array_flip(['id','revision','phase','version','connection_mode','sheet_id','header_row','synced_rows','invalid_rows','conflict_rows','error_code','error_message','next_attempt_at','last_summary','spreadsheet_id','sheet_name','sync_enabled','closes_at','last_synced_at','deadline_passed']));
     }
 }

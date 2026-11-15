@@ -48,15 +48,13 @@ final class ReaderSheet
             if($label!=='')$headers[]=['column'=>$column,'label'=>mb_strcut($label,0,100,'UTF-8')];
         }
         if(!$headers)throw new ApiError('Header kosong. Periksa baris header pada pengaturan lanjutan.',422);
-        $identity=null;
-        foreach($headers as $column){$key=preg_replace('/[^a-z0-9]/','',strtolower($column['label']));if(in_array($key,['timestamp','stempelwaktu','waktupengisian','id','idpeserta','responseid','idrespons'],true)){$identity=$column['column'];break;}}
         $examples=[];
         if($sample)for($row=$header+1;$row<=min($header+5,$rows);$row++){
             $values=[];for($column=1;$column<=$width;$column++)$values[]=mb_substr($cells[$row][$column]['text'] ?? '',0,160);
             if(array_filter($values,static fn($v)=>$v!==''))$examples[]=$values;
         }
         return ['sheet_id'=>$properties['sheetId'],'sheet_name'=>$properties['title'],'header_row'=>$header,'headers'=>$headers,
-          'header_hash'=>hash('sha256',json_encode($headers,JSON_THROW_ON_ERROR)),'last_row'=>$rows,'identity_column'=>$identity,'sample'=>$examples];
+          'header_hash'=>hash('sha256',json_encode($headers,JSON_THROW_ON_ERROR)),'last_row'=>$rows,'sample'=>$examples];
     }
 
     public function metadata(?int $gid,int $header,bool $sample=false): array
@@ -76,11 +74,12 @@ final class ReaderSheet
     {
         $cursor = $source['sync_cursor']; $version = $this->version();
         $base = ['protocol'=>1,'spreadsheet_id'=>$this->spreadsheet,'sheet_id'=>(int)$source['sheet_id'],'header_hash'=>$source['header_hash']];
-        if (($cursor['kind'] ?? '')==='idle' && ($cursor['version'] ?? '')===$version) return [...$base,'events'=>[],'reader_cursor'=>$cursor,'snapshot_id'=>null,'final_snapshot'=>false,'initial_done'=>false,'more'=>false];
-        if (($cursor['kind'] ?? '')!=='scan') $cursor=['kind'=>'scan','after'=>(int)$source['header_row'],'snapshot_id'=>GoogleProtocol::uuid(),'version'=>$version,'stable'=>true];
+        if (($cursor['kind'] ?? '')==='idle' && ($cursor['version'] ?? '')===$version) return [...$base,'reader_cursor'=>$cursor,'reader_kind'=>'idle','rows'=>[]];
+        if (($cursor['kind'] ?? '')!=='scan') $cursor=['protocol'=>2,'kind'=>'scan','after'=>(int)$source['header_row'],'snapshot_id'=>GoogleProtocol::uuid(),'version'=>$version,'stable'=>true];
         $cursor['stable']=$cursor['stable'] && $cursor['version']===$version;
         $start=$cursor['after']+1;$requestedEnd=$cursor['after']+200;
-        $columns=array_values(array_unique([...array_values($source['column_mapping']),(int)$source['identity_column']]));
+        $anchorColumn=$this->anchorColumn($source['metadata']['headers']);
+        $columns=array_values(array_unique([...array_values($source['column_mapping']),...($anchorColumn?[$anchorColumn['column']]:[])]));
         $ranges=[self::range($source['sheet_name'],1,(int)$source['header_row'],256,(int)$source['header_row'])];
         $lastKnown=(int)($cursor['last_row'] ?? $source['metadata']['last_row'] ?? $source['header_row']);
         $withData=$start<=$lastKnown;
@@ -108,20 +107,28 @@ final class ReaderSheet
             for ($offset=0;$offset<=$end-$start;$offset++) {
                 $values=[];
                 foreach ($columns as $column) $values[$column]=$cells[$start+$offset][$column]['text'] ?? '';
-                $identity = $cells[$start+$offset][(int)$source['identity_column']]['raw'] ?? '';
-                if (!is_scalar($identity)) throw new ApiError('Identitas tidak valid pada baris ' . ($start+$offset) . '.',409);
-                if (trim((string)$identity)==='' && !array_filter($values,static fn($v)=>trim($v)!=='')) continue;
-                if (!is_scalar($identity) || trim((string)$identity)==='') throw new ApiError('Identitas kosong pada baris ' . ($start+$offset) . '. Isi ID unik atau gunakan Timestamp Google Forms.',409);
-                $hex = hash('sha256',$this->spreadsheet . ':' . $source['sheet_id'] . ':' . json_encode($identity,JSON_THROW_ON_ERROR));
-                $key = substr($hex,0,8).'-'.substr($hex,8,4).'-5'.substr($hex,13,3).'-a'.substr($hex,17,3).'-'.substr($hex,20,12);
-                $events[]=['key'=>$key,'row_number'=>$start+$offset,'operation'=>'upsert','values'=>$values,'issue'=>array_filter($columns,static fn($column)=>$cells[$start+$offset][$column]['error'] ?? false)?'CELL_ERROR':null];
+                $raw=$anchorColumn?($cells[$start+$offset][$anchorColumn['column']]['raw'] ?? null):null;
+                $anchor=is_scalar($raw)&&trim((string)$raw)!==''?hash('sha256',json_encode([$anchorColumn['label'],$raw],JSON_THROW_ON_ERROR)):null;
+                if($anchor===null && !array_filter($values,static fn($v)=>trim($v)!==''))continue;
+                $events[]=['row_number'=>$start+$offset,'values'=>$values,'anchor'=>$anchor,
+                  'issue'=>array_filter($columns,static fn($column)=>$cells[$start+$offset][$column]['error'] ?? false)?'CELL_ERROR':null];
+
             }
         }
-        $done = $end>=$metadata['last_row'];
-        if ($done) $cursor['stable'] = $cursor['stable'] && $this->version(true)===$cursor['version'];
-        $next = $done ? ['kind'=>'idle','version'=>$cursor['version'],'last_row'=>$metadata['last_row']] : [...$cursor,'after'=>$end,'last_row'=>$metadata['last_row']];
-        return [...$base,'sheet_name'=>$metadata['sheet_name'],'events'=>$events,'reader_cursor'=>$next,'snapshot_id'=>$cursor['snapshot_id'],'final_snapshot'=>$done && $cursor['stable'],'initial_done'=>$done,'more'=>!$done];
+        $done=$end>=$metadata['last_row'];
+        $next=[...$cursor,'kind'=>$done?'prepare':'scan','after'=>$end,'last_row'=>$metadata['last_row']];
+        return [...$base,'reader_kind'=>'scan','sheet_name'=>$metadata['sheet_name'],'rows'=>$events,'reader_cursor'=>$next];
     }
+
+    private function anchorColumn(array $headers): ?array
+    {
+        // Pilihan bantuan internal, tidak wajib, tidak unik, dan tidak menentukan duplikasi peserta.
+        foreach([['timestamp','stempelwaktu','waktupengisian'],['id','idpeserta','responseid','idrespons']] as $names){
+            foreach($headers as $header)if(in_array(preg_replace('/[^a-z0-9]/','',strtolower($header['label'])),$names,true))return $header;
+        }
+        return null;
+    }
+
     private static function range(string $sheet,int $left,int $top,int $right,int $bottom): string
     {
         $letter = static function(int $number): string { $value=''; while($number){$number--; $value=chr(65+$number%26).$value;$number=intdiv($number,26);} return $value; };

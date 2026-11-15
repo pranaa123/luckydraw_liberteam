@@ -26,10 +26,12 @@ final class ReaderConnection
         $http = new ReaderHttp($this->event,$input['job_id'] ?? null,$flow);
         try {
             $metadata = (new ReaderSheet($this->event,$http,$address['spreadsheet_id']))->metadata($address['sheet_id'],$header,true);
+            $http->close();
             $sealed = ['owner'=>$this->event->ownerId,'event'=>$this->event->id,'expires'=>time()+600,'address'=>[...$address,'sheet_id'=>$metadata['sheet_id']],
               'metadata'=>array_diff_key($metadata,['sample'=>true]),'schema'=>ParticipantFilter::schema((new FieldRepository($this->event))->all())];
             return ['metadata'=>$metadata,'inspection'=>(new SecretVault())->encrypt(json_encode($sealed,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE))];
         } catch (ReaderPending $pending) { return ['pending'=>true,'job_id'=>$pending->job]; }
+        catch(ApiError $error){$http->close();throw $error;}
     }
     public function connect(array $input,?string $closes): array
     {
@@ -48,29 +50,26 @@ final class ReaderConnection
                 $prior=$records->find((int)$current['id']);
                 if ($prior['connection_id']===$connection) {
                     if ($prior['spreadsheet_id']!==$verified['address']['spreadsheet_id'] || (int)$prior['sheet_id']!==$verified['address']['sheet_id']
-                      || (int)$prior['identity_column']!==($input['identity_column'] ?? null) || \App\Modules\Participants\DuplicatePolicy::decode($prior['column_mapping'])!=($input['mapping'] ?? null)) throw new ApiError('Percobaan koneksi sudah dipakai. Buka ulang dialog sebelum mengganti sumber.',409);
+                      || \App\Modules\Participants\DuplicatePolicy::decode($prior['column_mapping'])!=($input['mapping'] ?? null)) throw new ApiError('Percobaan koneksi sudah dipakai. Buka ulang dialog sebelum mengganti sumber.',409);
                     return [...(new GoogleSyncService($this->event))->public((int)$current['id']),'name'=>$verified['metadata']['sheet_name']];
                 }
             }
             if (($current ? (int)$current['id'] : null)!==($input['current_id'] ?? null) || ($current && (int)$current['version']!==($input['current_version'] ?? null))) throw new ApiError('Koneksi berubah di jendela lain. Buka ulang Google Sheets.',409);
             $metadata = $verified['metadata']; $address=$verified['address'];
             $mapping = GoogleProtocol::mapping($input['mapping'] ?? null,$fields,$metadata['headers']);
-            $identity = Input::integer($input,'identity_column',1,256);
-            if (!in_array($identity,array_column($metadata['headers'],'column'),true)) throw new ApiError('Pilih kolom identitas baris.');
             $reuse = null;
             if ($current && $current['connection_mode']==='reader') {
                 $old = $records->find((int)$current['id']);
                 if ($old['spreadsheet_id']===$address['spreadsheet_id'] && (int)$old['sheet_id']===$address['sheet_id']) {
-                    if ((int)$old['identity_column']!==$identity) throw new ApiError('Kolom identitas koneksi ini harus tetap sama agar peserta tidak digandakan.',409);
                     $reuse=(int)$current['id'];
                 }
             }
             $reader->retire($reuse);
             $source = $reuse ? $records->find($reuse) : $records->create($connection,$address,(int)$metadata['header_row'],null);
-            $id=(int)($source['id'] ?? $reuse); $reader->mark($id,$identity,$connection,(int)$metadata['header_row']);
+            $id=(int)($source['id'] ?? $reuse); $reader->mark($id,$connection,(int)$metadata['header_row']);
             // Metadata sudah diverifikasi oleh server, tanpa HTTP di dalam transaksi.
             $records->lease($id,$lease=GoogleProtocol::uuid());$records->metadata($id,$lease,$metadata);
-            $records->configure($id,$mapping,$schema,$metadata['header_hash'],$closes,['kind'=>'idle','version'=>'']);
+            $records->configure($id,$mapping,$schema,$metadata['header_hash'],$closes,ReaderSnapshotService::idle(''));
             return [...(new GoogleSyncService($this->event))->public($id),'name'=>$metadata['sheet_name']];
         });
     }

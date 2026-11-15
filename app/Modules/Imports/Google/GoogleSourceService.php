@@ -17,11 +17,15 @@ final class GoogleSourceService
     private readonly GoogleSourceRepository $records;
     private readonly GoogleSyncService $sync;
     public function __construct(private readonly EventContext $event) { $this->records = new GoogleSourceRepository($event); $this->sync = new GoogleSyncService($event); }
-    public function list(): array { return ['items' => $this->records->list(),'data_version' => $this->records->dataVersion(),
-      'reader' => ['ready'=>Reader\ReaderAccess::ready(),'email'=>Reader\ReaderAccess::email()]]; }
+    public function list(): array {
+        (new Reader\ReaderRepository($this->event))->upgrade();
+        return ['items'=>$this->records->list(),'data_version'=>$this->records->dataVersion(),
+          'reader'=>['ready'=>Reader\ReaderAccess::ready(),'email'=>Reader\ReaderAccess::email()]];
+    }
 
     public function save(string $action,array $input): array
     {
+        (new Reader\ReaderRepository($this->event))->upgrade();
         if ($action === 'inspect') return (new Reader\ReaderConnection($this->event))->inspect($input);
         if ($action === 'connect') return (new Reader\ReaderConnection($this->event))->connect($input,$this->deadline($input));
         if ($action === 'prepare') return $this->prepare($input);
@@ -136,6 +140,7 @@ final class GoogleSourceService
         }
         $event = ['row_key' => $key,'row_number' => (int) $row['row_number'],'operation' => 'upsert','data' => $data,'hash' => hash('sha256',json_encode($data,JSON_THROW_ON_ERROR)),'issue' => null];
         $summary = (new GoogleRowService($this->event))->apply((int) $source['id'],[$event],null,false,$choice);
+        if($source['connection_mode']==='reader')(new Reader\ReaderRepository($this->event))->revisit((int)$source['id']);
         $this->records->adjust((int) $source['id'],$summary);
         return [...$this->sync->public((int) $source['id']),'summary' => $summary,'changed' => $summary['changed'] > 0,'row_key' => $key,'participant_id' => $row['participant_id'],'choice' => $choice,'name' => $source['sheet_name']];
     }

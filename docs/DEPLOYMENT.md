@@ -38,4 +38,10 @@ Autentikasi ini milik aplikasi PHP/PostgreSQL, bukan Supabase Auth. Tidak ada pe
 - Vercel: **Kapsul Photobooth**, slug `kapsul-photobooth`, proyek `luckydraw-liberteam`; domain `luckydraw-liberteam.vercel.app`. Proyek awal berisi garis bawah telah disesuaikan ke nama yang diminta pengguna karena registry menolak jalur image sebelumnya. ID proyek dan tautan GitHub dipertahankan.
 - Supabase: https://supabase.com/dashboard/project/mjqkrtrjrctdqnbzbbwb.
 
-Git lokal aplikasi baru mempunyai remote origin ke repository di atas. Region fungsi Vercel `sin1` berdampingan dengan Supabase `ap-southeast-1`. Migrasi Supabase diterapkan melalui CLI ke ref eksplisit; seluruh 16 tabel acara dan 3 tabel auth memiliki RLS. Jangan memakai project/kredensial aplikasi lama. Akun pemilik aplikasi berbeda dari kredensial GitHub/Vercel/database; password tidak disimpan dalam dokumentasi atau migrasi.
+Git lokal aplikasi baru mempunyai remote origin ke repository di atas. Region fungsi Vercel `sin1` berdampingan dengan Supabase `ap-southeast-1`. Migrasi Supabase diterapkan melalui CLI ke ref eksplisit; seluruh 17 tabel acara dan 3 tabel auth memiliki RLS. Jangan memakai project/kredensial aplikasi lama. Akun pemilik aplikasi berbeda dari kredensial GitHub/Vercel/database; password tidak disimpan dalam dokumentasi atau migrasi.
+
+## Reader tanpa ID wajib — 15 November 2026
+
+Migrasi automatic_sheet_rows menambah staging snapshot privat dengan RLS dan pencocokan UUID internal, tanpa menghapus data lama. Frontend tidak menawarkan ID unik; Timestamp ganda/kosong dan baris identik diterima. ReaderRepository mengalihkan cursor lama saat kode baru aktif serta memulihkan pause akibat validasi ID lama. Data peserta, pause manual dan deadline dipertahankan.
+
+Uji fixture 1.000 entri mencakup impor ulang, sortir lintas halaman, kunci duplikasi satu/gabungan, konflik edit operator, perubahan ambigu, penghapusan dan pemenang. Versi tetap maupun perubahan file tanpa perubahan isi tidak membaca participants/pool. Browser QA memverifikasi alur ringkas dan Mulai saat Google lambat (64 ms). Preview PHP/PDO/Supabase memakai akun QA terpisah dan spreadsheet contoh resmi Google: 30 peserta, Mulai/Stop/Kosongkan 175–183 ms. Inspeksi Google 1.127 ms; waktu jaringan Google dan cold start tetap bervariasi. Seluruh npm run check dan build lulus; target core <1.000 ms dipertahankan.

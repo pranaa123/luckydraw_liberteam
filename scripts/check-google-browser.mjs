@@ -8,7 +8,7 @@ const origin=process.env.DOORPRIZE_TEST_ORIGIN||'http://127.0.0.1:8098';
 assert.match(origin,/^http:\/\/127\.0\.0\.1:809[89]$/,'Gunakan QA terpisah');
 let auth=await qaSession(origin);const directory=resolve('.cache/google-reader-browser');await mkdir(directory,{recursive:true});
 const path=resolve(directory,'state.json'),id='1DoorprizeReaderBrowserFixture1234567890';
-let fixture={id,version:1,headers:['Timestamp','Nama lengkap','Divisi'],rows:[[45000.1,'Alam','A'],[45000.2,'Budi','B']],deny:false,delay_ms:0};
+let fixture={id,version:1,headers:['Timestamp','Nama lengkap','Divisi'],rows:[[45000.1,'Alam','A'],[45000.1,'Alam','A'],['','Budi','B']],deny:false,delay_ms:0};
 async function save(){await writeFile(path+'.tmp',JSON.stringify(fixture));await rename(path+'.tmp',path);}
 await save();await writeFile(path+'.requests.jsonl','');
 async function api(name,payload){const r=await auth.fetch(origin+'/api/'+name,{method:payload?'POST':'GET',headers:{origin,'content-type':'application/json'},body:payload?JSON.stringify(payload):undefined});const v=await r.json();assert.equal(r.status,200,v.error);return v;}
@@ -25,13 +25,13 @@ try {
  assert.equal(await page.evaluate('document.querySelector("#google-dialog").textContent.includes("Apps Script")'),false);
  assert.equal(await page.evaluate('document.querySelector("#google-reader-email").value'),'reader@fixture-project.iam.gserviceaccount.com');
  const url=`https://docs.google.com/spreadsheets/d/${id}/edit#gid=0`;
- await inspect(url);assert.equal(await page.evaluate('document.querySelector("[data-google-field=name]").value'),'2');assert.equal(await page.evaluate('document.querySelector("#google-identity-label").hidden'),true);
+ await inspect(url);assert.equal(await page.evaluate('document.querySelector("[data-google-field=name]").value'),'2');assert.equal(await page.evaluate('document.querySelector("#google-identity-label")'),null);
  await page.click('#google-close');assert.equal((await api('google-sources')).items.length,0,'Periksa+batal bukan koneksi');
  await open();await inspect(url);await page.click('#google-connect');await page.wait('!document.querySelector("#google-dialog").open');
  await page.wait('document.querySelectorAll("#google-source-list .source-row").length===1&&document.querySelector("[data-source-phase]").textContent==="Aktif"');
- assert.equal((await api('participants')).items.length,2);
+ assert.equal((await api('participants')).items.length,3,'Timestamp ganda/kosong serta baris identik diterima tanpa pilihan ID');
  await open();await inspect(url);await page.click('#google-connect');await page.wait('!document.querySelector("#google-dialog").open');await page.wait('document.querySelector("[data-source-phase]").textContent==="Aktif"');
- assert.equal((await api('participants')).items.length,2,'Pemetaan ulang tidak menambah peserta');
+ assert.equal((await api('participants')).items.length,3,'Pemetaan ulang tidak menambah peserta');
  // Gagal memeriksa pengganti tidak memutus sumber aktif.
  fixture.deny=true;await save();await open();await fill('#google-url',url.replace(id,id+'Other'));await page.click('#google-prepare');await page.wait('!document.querySelector("#google-error").hidden');
  assert.equal((await api('google-sources')).items[0].phase,'live');assert.equal(await page.evaluate('document.querySelectorAll("#google-source-list .source-row").length'),1);await page.click('#google-close');fixture.deny=false;await save();
@@ -42,7 +42,7 @@ try {
  const began=performance.now();await page.click('#draw-start');await page.wait('document.querySelector("#draw-start").textContent.includes("Stop")');const startMs=Math.round(performance.now()-began);assert.ok(startMs<1000,'Mulai saat Google lambat '+startMs);
  await page.click('#draw-start');await page.wait('!document.querySelector("#draw-clear").disabled');await page.click('#draw-clear');fixture.delay_ms=0;await save();
  await page.click('[data-tab=participants]');await page.click('[data-source-action=disconnect]');await page.wait('document.querySelector("#google-source-list").hidden');
- assert.equal((await api('participants')).items.length,2,'Putus koneksi mempertahankan peserta');
+ assert.equal((await api('participants')).items.length,3,'Putus koneksi mempertahankan peserta');
  await open();await browser.call('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:false},page.sessionId);assert.equal(await page.evaluate('document.documentElement.scrollWidth<=innerWidth'),true);
  await writeFile(resolve(directory,'dialog.png'),Buffer.from((await browser.call('Page.captureScreenshot',{format:'png'},page.sessionId)).data,'base64'));
  assert.deepEqual(errors,[]);console.log(`Browser Google Reader: Viewer/link tanpa Apps Script, deteksi otomatis, batal tanpa daftar, satu koneksi, pemetaan ulang, pengganti gagal tidak memutus sumber, putus tanpa hapus peserta, mobile dan kontrol saat Google lambat (${startMs} ms) lulus.`);

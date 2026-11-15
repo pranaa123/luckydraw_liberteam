@@ -9,7 +9,7 @@ use App\Modules\Events\EventContext;
 
 final class GoogleSourceRepository
 {
-    private const COLUMNS = 'g.source_id AS id, g.revision, g.connection_id, g.connection_mode, g.identity_column, g.endpoint, g.encrypted_secret, g.sheet_id, g.header_row, g.field_schema, g.header_hash, g.metadata,
+    private const COLUMNS = 'g.source_id AS id, g.revision, g.connection_id, g.connection_mode, g.endpoint, g.encrypted_secret, g.sheet_id, g.header_row, g.field_schema, g.header_hash, g.metadata,
       g.phase, g.initial_complete, g.version, g.lease_id, g.lease_until, g.pending_job_id, g.failure_count, g.next_attempt_at, g.error_code, g.error_message, g.synced_rows, g.invalid_rows,
       g.conflict_rows, g.last_summary, s.spreadsheet_id, s.sheet_name, s.column_mapping, s.sync_cursor, s.sync_enabled, s.closes_at, s.disconnected_at, s.last_synced_at,
       (s.closes_at IS NOT NULL AND s.closes_at <= now()) AS deadline_passed, (g.lease_until > now()) AS leased, (g.next_attempt_at <= now()) AS due';
@@ -25,7 +25,7 @@ final class GoogleSourceRepository
     public function list(): array
     {
         // Tidak membawa kredensial/metadata/isi peserta pada status berkala.
-        return $this->event->database->query('SELECT g.source_id AS id, g.revision, g.phase, g.version, g.connection_mode, g.identity_column, g.sheet_id, g.header_row, g.synced_rows, g.invalid_rows, g.conflict_rows,
+        return $this->event->database->query('SELECT g.source_id AS id, g.revision, g.phase, g.version, g.connection_mode, g.sheet_id, g.header_row, g.synced_rows, g.invalid_rows, g.conflict_rows,
           g.error_code, g.error_message, g.next_attempt_at, g.last_summary, s.spreadsheet_id, s.sheet_name, s.sync_enabled, s.closes_at, s.last_synced_at,
           (s.closes_at IS NOT NULL AND s.closes_at <= now()) AS deadline_passed FROM doorprize.google_sources g JOIN doorprize.import_sources s ON s.id = g.source_id AND s.event_id = g.event_id WHERE g.event_id = ? AND g.phase IN (\'initial\',\'live\',\'paused\',\'closed\') ORDER BY g.source_id DESC LIMIT 1', [$this->event->id]);
     }

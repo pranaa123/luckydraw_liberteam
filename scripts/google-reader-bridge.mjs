@@ -17,6 +17,10 @@ export function createReaderBridge(fetcher=googleRequest) {
   return request=>{
     const now=Date.now();for(const[id,job]of jobs)if(job.expires<now)jobs.delete(id);
     let id=request.job_id,job=id?jobs.get(id):null;
+    if(request.type==='google_reader_done'){
+      if(job&&job.scope===request.scope&&job.flow===request.flow)jobs.delete(id);
+      return{closed:true};
+    }
     if(id&&(!job||job.scope!==request.scope||job.flow!==request.flow))return{error:'Permintaan Google kedaluwarsa.'};
     if(!job){if(jobs.size>=32)return{error:'Antrean Google penuh.'};id=randomUUID();job={scope:request.scope,flow:request.flow,expires:now+90000,responses:new Map(),pending:new Set()};jobs.set(id,job);}
     const key=createHash('sha256').update(JSON.stringify([request.url,request.body])).digest('hex');

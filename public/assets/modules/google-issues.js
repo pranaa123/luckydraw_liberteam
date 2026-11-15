@@ -33,6 +33,7 @@ export class GoogleIssues {
       const actions = element('td');
       if (row.issue === 'invalid') actions.append(element('span',row.issue_message || 'Perbaiki di Sheets','field-hint'));
       else {
+        if(row.issue_message)actions.append(element('p',row.issue_message,'field-hint'));
         for (const [choice,label] of [['local','Pertahankan lokal'],['remote','Gunakan Sheets']]) {
           if (choice === 'local' && !row.participant_id) continue;
           const button = element('button',label,`button ${choice === 'local' ? 'button-secondary' : 'button-save'}`); button.type = 'button'; button.dataset.resolve = choice;

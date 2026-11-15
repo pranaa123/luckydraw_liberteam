@@ -54,7 +54,7 @@ export class GoogleDialog {
   error(error) {$('error').textContent=error.message;$('error').hidden=false;this.status('');}
   busy(value,text) {
     this.loading=value;if(text!==undefined)this.status(text);
-    for(const id of ['url','header','prepare','identity','closes'])$(id).disabled=value;
+    for(const id of ['url','header','prepare','closes'])$(id).disabled=value;
     if(!value&&!this.store.reader?.ready)$('prepare').disabled=true;
     $('mapping-controls').disabled=value;$('connect').disabled=value;$('close').disabled=!!this.committing;
   }
@@ -76,11 +76,6 @@ export class GoogleDialog {
         && new URL(url).pathname.includes('/'+this.source?.spreadsheet_id+'/')) {
         for(const[key,column]of Object.entries(this.savedMapping.mapping)){const select=this.mapping.selects.get(key);if(select)select.value=String(column);}
       }
-      const identity=$('identity');identity.replaceChildren();
-      const empty=element('option','Pilih kolom ID unik');empty.value='';identity.append(empty);
-      for(const column of this.metadata.headers){const option=element('option',column.label);option.value=column.column;identity.append(option);}
-      identity.value=this.metadata.identity_column||'';
-      $('identity-label').hidden=!!this.metadata.identity_column;
       $('mapping-controls').hidden=false;$('schedule-label').hidden=false;$('connect').hidden=false;
       this.renderSample();this.status(`${this.metadata.sheet_name} · Periksa kecocokan kolom, lalu hubungkan.`);
     }catch(error){if(session===this.session)this.error(error);}
@@ -97,10 +92,9 @@ export class GoogleDialog {
     if(this.loading||!this.inspection)return;
     this.committing=true;this.busy(true,'Menghubungkan…');$('error').hidden=true;
     try {
-      if(!$('identity').value)throw Error('Pilih kolom ID unik untuk melacak perubahan baris.');
       const source=await apiRequest('/api/google-sources',{action:'connect',connection_id:this.connection,inspection:this.inspection,
         current_id:this.source?Number(this.source.id):null,current_version:this.source?Number(this.source.version):null,
-        mapping:this.mapping.value(),field_schema:this.schema,identity_column:Number($('identity').value),
+        mapping:this.mapping.value(),field_schema:this.schema,
         closes_at:$('closes').value?new Date($('closes').value).toISOString():null});
       this.store.update(source);this.store.changed(false,true);this.store.wake();this.committing=false;this.close();
       this.feedback('Google Sheets terhubung. Peserta diperbarui otomatis.');

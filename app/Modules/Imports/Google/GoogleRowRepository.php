@@ -14,7 +14,7 @@ final class GoogleRowRepository
 
     public function current(int $source, array $keys): array
     {
-        $rows = $this->event->database->query('SELECT r.row_key, r.row_number, r.participant_id, r.source_data, r.source_hash, r.incoming_data, r.incoming_hash, r.issue, r.issue_message, r.deleted, r.locally_removed, r.version,
+        $rows = $this->event->database->query('SELECT r.row_key, r.row_number, r.participant_id, r.source_data, r.source_hash, r.incoming_data, r.incoming_hash, r.issue, r.issue_message, r.deleted, r.locally_removed, r.reader_anchor, r.reader_review, r.version,
           ' . FieldSchema::columns('p') . ', p.status, p.version AS participant_version
           FROM doorprize.google_rows r LEFT JOIN doorprize.participants p ON p.id = r.participant_id AND p.event_id = r.event_id
           WHERE r.event_id = ? AND r.source_id = ? AND r.row_key IN (SELECT value::uuid FROM jsonb_array_elements_text(?::jsonb))', [$this->event->id, $source, json_encode($keys, JSON_THROW_ON_ERROR)]);
@@ -55,14 +55,14 @@ final class GoogleRowRepository
     public function remember(array $rows, int $source, ?string $snapshot): void
     {
         if (!$rows) return;
-        $this->event->database->query('INSERT INTO doorprize.google_rows AS old (source_id,event_id,row_key,row_number,participant_id,source_data,source_hash,incoming_data,incoming_hash,issue,issue_message,deleted,locally_removed,seen_snapshot)
-          SELECT ?, ?, r.row_key, r.row_number, r.participant_id, r.source_data, r.source_hash, r.incoming_data, r.incoming_hash, r.issue, r.issue_message, r.deleted, r.locally_removed, ?::uuid
-          FROM jsonb_to_recordset(?::jsonb) AS r(row_key uuid,row_number integer,participant_id bigint,source_data jsonb,source_hash text,incoming_data jsonb,incoming_hash text,issue text,issue_message text,deleted boolean,locally_removed boolean)
+        $this->event->database->query('INSERT INTO doorprize.google_rows AS old (source_id,event_id,row_key,row_number,participant_id,source_data,source_hash,incoming_data,incoming_hash,issue,issue_message,deleted,locally_removed,seen_snapshot,reader_anchor,reader_review)
+          SELECT ?, ?, r.row_key, r.row_number, r.participant_id, r.source_data, r.source_hash, r.incoming_data, r.incoming_hash, r.issue, r.issue_message, r.deleted, r.locally_removed, ?::uuid,r.reader_anchor,r.reader_review
+          FROM jsonb_to_recordset(?::jsonb) AS r(row_key uuid,row_number integer,participant_id bigint,source_data jsonb,source_hash text,incoming_data jsonb,incoming_hash text,issue text,issue_message text,deleted boolean,locally_removed boolean,reader_anchor text,reader_review boolean)
           ON CONFLICT(source_id,row_key) DO UPDATE SET row_number = excluded.row_number,participant_id = excluded.participant_id,source_data = excluded.source_data,source_hash = excluded.source_hash,
           incoming_data = excluded.incoming_data,incoming_hash = excluded.incoming_hash,issue = excluded.issue,issue_message = excluded.issue_message,deleted = excluded.deleted,locally_removed = excluded.locally_removed,
-          seen_snapshot = COALESCE(excluded.seen_snapshot,old.seen_snapshot),version = old.version + 1,updated_at = now()
-          WHERE (old.row_number,old.participant_id,old.source_data,old.source_hash,old.incoming_data,old.incoming_hash,old.issue,old.issue_message,old.deleted,old.locally_removed,old.seen_snapshot)
-            IS DISTINCT FROM (excluded.row_number,excluded.participant_id,excluded.source_data,excluded.source_hash,excluded.incoming_data,excluded.incoming_hash,excluded.issue,excluded.issue_message,excluded.deleted,excluded.locally_removed,COALESCE(excluded.seen_snapshot,old.seen_snapshot))', [$source, $this->event->id, $snapshot, json_encode($rows, JSON_THROW_ON_ERROR)]);
+          seen_snapshot = COALESCE(excluded.seen_snapshot,old.seen_snapshot),reader_anchor=excluded.reader_anchor,reader_review=excluded.reader_review,version = old.version + 1,updated_at = now()
+          WHERE (old.row_number,old.participant_id,old.source_data,old.source_hash,old.incoming_data,old.incoming_hash,old.issue,old.issue_message,old.deleted,old.locally_removed,old.seen_snapshot,old.reader_anchor,old.reader_review)
+            IS DISTINCT FROM (excluded.row_number,excluded.participant_id,excluded.source_data,excluded.source_hash,excluded.incoming_data,excluded.incoming_hash,excluded.issue,excluded.issue_message,excluded.deleted,excluded.locally_removed,COALESCE(excluded.seen_snapshot,old.seen_snapshot),excluded.reader_anchor,excluded.reader_review)', [$source, $this->event->id, $snapshot, json_encode($rows, JSON_THROW_ON_ERROR)]);
     }
 
     public function addWork(array $ids): void
