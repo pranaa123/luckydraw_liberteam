@@ -77,8 +77,8 @@ export class ShuffleAnimation {
     const value=this.sequence?.frame(elapsed,reduced);if(!value)return;
     const progress=this.sequence.names.length<2?0:value.progress*value.progress*(3-2*value.progress);
     this.setName(this.nodes[0],value.current);this.setName(this.nodes[1],value.next);
-    this.nodes[0].style.transform=`translate(-50%,-50%) translateY(${-progress*this.slotHeight}px)`;
-    this.nodes[1].style.transform=`translate(-50%,-50%) translateY(${(1-progress)*this.slotHeight}px)`;
+    this.nodes[0].style.transform=`translate(-50%,-50%) translateY(${progress*this.slotHeight}px)`;
+    this.nodes[1].style.transform=`translate(-50%,-50%) translateY(${(progress-1)*this.slotHeight}px)`;
     this.nodes[1].hidden=reduced||this.sequence.names.length<2;
     if(reduced)this.timer=setTimeout(()=>this.tick(),value.interval-elapsed%value.interval+1);
     else this.frame=requestAnimationFrame(()=>this.tick());
